@@ -362,9 +362,17 @@ mkdir -p /etc/nginx/ssl
 # Criar usuário do sistema
 if id "sentinelweb" &>/dev/null; then
     log_warning "Usuário 'sentinelweb' já existe"
+    # Garantir que está no grupo docker
+    usermod -aG docker sentinelweb 2>/dev/null || true
 else
     log_info "Criando usuário do sistema 'sentinelweb'..."
     useradd -r -s /bin/bash -d $INSTALL_DIR -m sentinelweb
+    
+    # Adicionar usuário ao grupo docker
+    log_info "Adicionando usuário ao grupo docker..."
+    usermod -aG docker sentinelweb
+    
+    log_success "Usuário 'sentinelweb' criado e adicionado ao grupo docker!"
 fi
 
 # Ajustar permissões
