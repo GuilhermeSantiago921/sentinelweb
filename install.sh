@@ -34,6 +34,8 @@ cat << "EOF"
 ║                                                               ║
 ║              🔧 INSTALAÇÃO AUTOMÁTICA - UBUNTU 🔧             ║
 ║                       Versão 1.0.0                           ║
+║                                                               ║
+║        📦 GitHub: GuilhermeSantiago921/sentinelweb           ║
 ╚═══════════════════════════════════════════════════════════════╝
 EOF
 echo -e "${NC}"
@@ -137,6 +139,9 @@ echo "  • Nginx (reverse proxy)"
 echo "  • Certbot (SSL/TLS)"
 echo "  • UFW (firewall)"
 echo "  • Fail2Ban (proteção brute force)"
+echo ""
+log_info "O código será baixado automaticamente do GitHub:"
+log_info "📦 https://github.com/GuilhermeSantiago921/sentinelweb.git"
 echo ""
 
 if ! confirm "Deseja continuar com a instalação?"; then
@@ -376,33 +381,69 @@ chmod 750 $LOG_DIR
 log_success "Estrutura de diretórios criada!"
 
 ################################################################################
-# PASSO 8: COPIAR ARQUIVOS DA APLICAÇÃO
+# PASSO 8: BAIXAR APLICAÇÃO DO GITHUB
 ################################################################################
 
-log_step 8 $TOTAL_STEPS "Copiando Arquivos da Aplicação"
+log_step 8 $TOTAL_STEPS "Baixando Aplicação do GitHub"
 
-CURRENT_DIR=$(pwd)
+GITHUB_REPO="https://github.com/GuilhermeSantiago921/sentinelweb.git"
 
-if [ "$CURRENT_DIR" != "$INSTALL_DIR" ]; then
-    log_info "Copiando arquivos de $CURRENT_DIR para $INSTALL_DIR..."
+# Verificar se o diretório já existe e tem conteúdo
+if [ -d "$INSTALL_DIR" ] && [ "$(ls -A $INSTALL_DIR 2>/dev/null)" ]; then
+    log_warning "Diretório $INSTALL_DIR já existe com conteúdo"
     
-    # Copiar arquivos
-    rsync -av --exclude='__pycache__' \
-              --exclude='*.pyc' \
-              --exclude='.git' \
-              --exclude='*.db' \
-              --exclude='venv' \
-              --exclude='node_modules' \
-              --exclude='.env' \
-              $CURRENT_DIR/ $INSTALL_DIR/
-    
-    # Ajustar proprietário
-    chown -R sentinelweb:sentinelweb $INSTALL_DIR
-    
-    log_success "Arquivos copiados!"
+    # Verificar se é um repositório Git
+    if [ -d "$INSTALL_DIR/.git" ]; then
+        log_info "Atualizando repositório existente..."
+        cd $INSTALL_DIR
+        sudo -u sentinelweb git pull origin main
+        log_success "Repositório atualizado!"
+    else
+        # Fazer backup do diretório existente
+        BACKUP_NAME="$INSTALL_DIR.backup.$(date +%Y%m%d_%H%M%S)"
+        log_info "Fazendo backup do diretório existente para $BACKUP_NAME..."
+        mv $INSTALL_DIR $BACKUP_NAME
+        
+        # Clonar repositório
+        log_info "Clonando repositório do GitHub..."
+        sudo -u sentinelweb git clone $GITHUB_REPO $INSTALL_DIR
+        
+        log_success "Repositório clonado com sucesso!"
+    fi
 else
-    log_info "Já estamos no diretório de instalação"
+    # Diretório não existe ou está vazio - clonar repositório
+    log_info "Clonando repositório do GitHub: $GITHUB_REPO"
+    log_info "Destino: $INSTALL_DIR"
+    
+    # Remover diretório vazio se existir
+    [ -d "$INSTALL_DIR" ] && rmdir $INSTALL_DIR 2>/dev/null || true
+    
+    # Clonar como usuário sentinelweb
+    sudo -u sentinelweb git clone $GITHUB_REPO $INSTALL_DIR
+    
+    if [ $? -eq 0 ]; then
+        log_success "Repositório clonado com sucesso!"
+    else
+        log_error "Falha ao clonar repositório do GitHub!"
+        log_info "Verifique sua conexão com a internet e tente novamente."
+        exit 1
+    fi
 fi
+
+# Ajustar permissões
+chown -R sentinelweb:sentinelweb $INSTALL_DIR
+chmod 750 $INSTALL_DIR
+
+# Verificar se arquivos essenciais existem
+REQUIRED_FILES=("main.py" "docker-compose.prod.yml" "requirements.txt")
+for file in "${REQUIRED_FILES[@]}"; do
+    if [ ! -f "$INSTALL_DIR/$file" ]; then
+        log_error "Arquivo obrigatório não encontrado: $file"
+        exit 1
+    fi
+done
+
+log_success "Todos os arquivos essenciais verificados!"
 
 ################################################################################
 # PASSO 9: GERAR CREDENCIAIS

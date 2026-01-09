@@ -8,27 +8,32 @@
 - ✅ **Domínio** apontando para o servidor
 - ✅ **Acesso root/sudo**
 
-### ⚡ Instalação em 3 Comandos
+### ⚡ Instalação em 2 Comandos
 
 ```bash
-# 1. Acesse seu servidor
-ssh root@SEU_IP
+# 1. Baixe o instalador
+curl -fsSL https://raw.githubusercontent.com/GuilhermeSantiago921/sentinelweb/main/install.sh | sudo bash
 
-# 2. Faça upload/clone dos arquivos para /opt/sentinelweb
+# OU em 2 passos (recomendado):
 
-# 3. Execute o instalador automático
-cd /opt/sentinelweb
+# 1. Baixe o script
+wget https://raw.githubusercontent.com/GuilhermeSantiago921/sentinelweb/main/install.sh
+
+# 2. Execute
 sudo bash install.sh
 ```
 
-**Pronto!** O script instala tudo em 15-30 minutos:
-- ✅ Docker & Docker Compose
-- ✅ PostgreSQL 15
-- ✅ Redis
-- ✅ Nginx + SSL/TLS
-- ✅ Firewall (UFW)
-- ✅ Fail2Ban
-- ✅ Backups automáticos
+**Pronto!** O script:
+- ✅ Baixa automaticamente do GitHub
+- ✅ Instala Docker & Docker Compose
+- ✅ Configura PostgreSQL 15 + Redis
+- ✅ Instala Nginx + SSL/TLS
+- ✅ Configura Firewall (UFW) + Fail2Ban
+- ✅ Gera credenciais fortes
+- ✅ Cria backups automáticos
+
+**Tempo:** 15-30 minutos  
+**Nenhum conhecimento técnico necessário!**
 
 ---
 

@@ -103,30 +103,37 @@
 
 ## ⚡ Instalação Rápida
 
-### � Instalação Automatizada (Ubuntu)
+### 🚀 Instalação Automatizada (Ubuntu)
 
-O método mais rápido para colocar em produção:
+O método mais rápido para colocar em produção - **apenas 1 comando**:
 
 ```bash
-# 1. Clone o repositório
-git clone https://github.com/GuilhermeSantiago921/sentinelweb.git
-cd sentinelweb
+# Baixe e execute o instalador
+curl -fsSL https://raw.githubusercontent.com/GuilhermeSantiago921/sentinelweb/main/install.sh | sudo bash
+```
 
-# 2. Execute o instalador automático (Ubuntu 20.04, 22.04, 24.04)
+**Ou em 2 passos (recomendado):**
+
+```bash
+# 1. Baixe o script
+wget https://raw.githubusercontent.com/GuilhermeSantiago921/sentinelweb/main/install.sh
+
+# 2. Execute
 sudo bash install.sh
 ```
 
-**O script instala automaticamente:**
-- ✅ Docker & Docker Compose
-- ✅ PostgreSQL 15 + Redis
-- ✅ Nginx + SSL/TLS (Let's Encrypt)
-- ✅ UFW Firewall + Fail2Ban
-- ✅ Backups automáticos (diários)
-- ✅ Gera credenciais fortes
+**O script faz tudo automaticamente:**
+- ✅ Baixa o código do GitHub
+- ✅ Instala Docker & Docker Compose
+- ✅ Configura PostgreSQL 15 + Redis
+- ✅ Instala Nginx + SSL/TLS (Let's Encrypt)
+- ✅ Configura UFW Firewall + Fail2Ban
+- ✅ Gera credenciais fortes automaticamente
+- ✅ Configura backups automáticos (diários)
 - ✅ Cria superusuário
 
 **Tempo:** 15-30 minutos  
-**Requisitos:** Ubuntu Server + Domínio apontando para o IP
+**Requisitos:** Ubuntu Server (20.04/22.04/24.04) + Domínio apontando para o IP
 
 📖 **Guia Completo:** [INSTALL_GUIDE.md](INSTALL_GUIDE.md)
 

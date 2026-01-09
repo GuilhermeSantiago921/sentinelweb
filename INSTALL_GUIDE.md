@@ -68,31 +68,21 @@ O script `install.sh` automatiza **100% da instalação** do SentinelWeb em serv
 ssh root@SEU_IP_DO_SERVIDOR
 ```
 
-### 2. Atualize o Sistema (opcional, o script faz isso)
+### 2. Baixe o Script de Instalação
 
 ```bash
-apt update && apt upgrade -y
+# Baixar o script diretamente do GitHub
+curl -fsSL https://raw.githubusercontent.com/GuilhermeSantiago921/sentinelweb/main/install.sh -o install.sh
+
+# Tornar executável
+chmod +x install.sh
 ```
 
-### 3. Baixe os Arquivos do Projeto
-
-**Opção A: Via Git (recomendado)**
+**Ou via wget:**
 ```bash
-cd /opt
-git clone https://github.com/SEU_USUARIO/sentinelweb.git
-cd sentinelweb
+wget https://raw.githubusercontent.com/GuilhermeSantiago921/sentinelweb/main/install.sh
+chmod +x install.sh
 ```
-
-**Opção B: Via SCP (upload local)**
-```bash
-# Na sua máquina local:
-scp -r sentinelweb/ root@SEU_IP:/opt/
-```
-
-**Opção C: Via SFTP**
-- Use FileZilla ou WinSCP
-- Conecte ao servidor
-- Faça upload da pasta `sentinelweb` para `/opt/`
 
 ---
 
@@ -101,9 +91,14 @@ scp -r sentinelweb/ root@SEU_IP:/opt/
 ### Executar o Script
 
 ```bash
-cd /opt/sentinelweb
 sudo bash install.sh
 ```
+
+**⚠️ IMPORTANTE:** O script irá:
+- Baixar automaticamente o código do GitHub
+- Instalar todas as dependências
+- Configurar tudo em `/opt/sentinelweb`
+- Não é necessário clonar o repositório manualmente!
 
 ### Durante a Instalação
 
