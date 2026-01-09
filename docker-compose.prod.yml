@@ -16,9 +16,9 @@ services:
     restart: unless-stopped
     
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-sentinelweb_user}
+      POSTGRES_USER: ${POSTGRES_USER:-sentinelweb}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD obrigatório}
-      POSTGRES_DB: ${POSTGRES_DB:-sentinelweb_prod}
+      POSTGRES_DB: ${POSTGRES_DB:-sentinelweb}
       PGDATA: /var/lib/postgresql/data/pgdata
       # Performance tuning para VPS
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=pt_BR.UTF-8"
@@ -36,7 +36,7 @@ services:
       - sentinelweb_network
     
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sentinelweb_user} -d ${POSTGRES_DB:-sentinelweb_prod}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sentinelweb} -d ${POSTGRES_DB:-sentinelweb}"]
       interval: 10s
       timeout: 5s
       retries: 5

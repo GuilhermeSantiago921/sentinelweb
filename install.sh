@@ -1102,10 +1102,18 @@ if sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml u
     while [ $WAIT_TIME -lt $MAX_WAIT ]; do
         # Verificar se jq está disponível
         if command -v jq &> /dev/null; then
-            HEALTHY=$(sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml ps --format json" 2>/dev/null | jq -r '.[].Health' 2>/dev/null | grep -c "healthy" || echo "0")
+            HEALTHY=$(sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml ps --format json" 2>/dev/null | jq -r '.[].Health' 2>/dev/null | grep -c "healthy" 2>/dev/null || echo "0")
         else
             # Fallback: contar linhas com "healthy" no output
-            HEALTHY=$(sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml ps" 2>/dev/null | grep -c "healthy" || echo "0")
+            HEALTHY=$(sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml ps" 2>/dev/null | grep -c "healthy" 2>/dev/null || echo "0")
+        fi
+        
+        # Remover espaços e quebras de linha
+        HEALTHY=$(echo "$HEALTHY" | tr -d '[:space:]')
+        
+        # Garantir que é um número válido
+        if ! [[ "$HEALTHY" =~ ^[0-9]+$ ]]; then
+            HEALTHY=0
         fi
         
         if [ "$HEALTHY" -ge 3 ]; then
@@ -1161,9 +1169,45 @@ print(\"Tabelas criadas com sucesso!\")
         log_success "Banco de dados inicializado!"
     else
         log_error "Falha ao criar tabelas do banco de dados!"
-        log_warning "Verifique se o container web está rodando:"
-        log_info "  docker compose -f docker-compose.prod.yml logs web"
-        exit 1
+        log_warning "Possíveis causas:"
+        log_info "  1. Container PostgreSQL ainda não está pronto (aguarde mais)"
+        log_info "  2. Senha do PostgreSQL incorreta no .env"
+        log_info "  3. Container web não consegue se conectar ao banco"
+        echo ""
+        log_info "SOLUÇÃO: Recriar containers com as credenciais corretas"
+        
+        if confirm "Deseja recriar os containers do zero?"; then
+            log_info "Parando containers..."
+            sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml down -v"
+            
+            log_info "Recriando containers..."
+            sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml up -d"
+            
+            log_info "Aguardando containers ficarem prontos (30s)..."
+            sleep 30
+            
+            log_info "Tentando novamente criar tabelas..."
+            if sg docker -c 'sudo -u sentinelweb docker compose -f docker-compose.prod.yml exec -T web python -c "
+from database import engine, Base
+from models import User, Site, MonitorLog, HeartbeatCheck, SystemConfig, Payment
+Base.metadata.create_all(bind=engine)
+print(\"Tabelas criadas com sucesso!\")
+"'; then
+                log_success "Banco de dados inicializado com sucesso!"
+            else
+                log_error "Falha persistente ao criar tabelas!"
+                log_info "Verifique manualmente os logs:"
+                log_info "  docker compose -f docker-compose.prod.yml logs db"
+                log_info "  docker compose -f docker-compose.prod.yml logs web"
+                exit 1
+            fi
+        else
+            log_warning "Instalação continuará, mas o banco pode não estar configurado"
+            log_info "Configure manualmente depois com:"
+            log_info "  cd $INSTALL_DIR"
+            log_info "  docker compose -f docker-compose.prod.yml down -v"
+            log_info "  docker compose -f docker-compose.prod.yml up -d"
+        fi
     fi
 fi
 
