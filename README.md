@@ -1,46 +1,189 @@
-# 🛡️ SentinelWeb - Sistema de Monitoramento de Sites e Segurança
+# 🛡️ SentinelWeb - Sistema de Monitoramento de Sites
 
-**SentinelWeb** é um SaaS completo para monitoramento de sites com verificações de segurança em tempo real. Desenvolvido com FastAPI, Celery e TailwindCSS.
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-blue.svg)](https://www.postgresql.org/)
+[![Docker](https://img.shields.io/badge/Docker-ready-blue.svg)](https://www.docker.com/)
+[![Security](https://img.shields.io/badge/security-A+-green.svg)](SECURITY_AUDIT.md)
 
-## 🚀 Funcionalidades
+> 🚀 **Sistema Completo de Monitoramento e Segurança Web**  
+> Monitore sites, valide SSL, detecte vulnerabilidades e receba alertas em tempo real!
 
-### ✅ Monitoramento Completo
-- **Uptime Check**: Verifica se o site está online (HTTP 200)
-- **Medição de Latência**: Tempo de resposta em milissegundos
-- **SSL Monitor**: Valida certificado SSL e alerta sobre expirações
-- **Port Scanner**: Detecta portas críticas abertas (FTP, SSH, MySQL, etc.)
+---
+
+## 📋 Índice
+
+- [✨ Funcionalidades](#-funcionalidades)
+- [🛠️ Stack Tecnológica](#️-stack-tecnológica)
+- [⚡ Instalação Rápida](#-instalação-rápida)
+- [🔒 Segurança](#-segurança)
+- [📚 Documentação](#-documentação)
+- [🤝 Contribuindo](#-contribuindo)
+- [📄 Licença](#-licença)
+
+---
+
+---
+
+## ✨ Funcionalidades
+
+### 🌐 Monitoramento Completo de Sites
+- ✅ **Uptime Check** - Verifica disponibilidade (HTTP 200)
+- ⚡ **Medição de Latência** - Tempo de resposta em tempo real
+- 🔐 **SSL Monitor** - Validação de certificados + alertas de expiração
+- 🔓 **Port Scanner** - Detecta portas críticas expostas
+- 📊 **WordPress Scanner** - Identifica plugins vulneráveis
+- 🎨 **Google PageSpeed** - Análise de performance
+- 👁️ **Visual Regression** - Detecta mudanças visuais no site
+
+### ❤️ Heartbeat Monitoring
+- 🔔 **Cron Job Monitoring** - Monitora execução de tarefas agendadas
+- ⏱️ **Dead Man's Switch** - Alerta se tarefa não executar
+- 📱 **Alertas Telegram** - Notificações instantâneas de falhas
+
+### 💰 Sistema de Pagamentos
+- 💳 **Integração Asaas** - Processamento de pagamentos completo
+- 📊 **Planos de Assinatura** - Free, Básico, Pro, Enterprise
+- 🔄 **Webhook Sync** - Sincronização automática de pagamentos
+- 📧 **Notificações** - Emails de confirmação e faturas
+
+### �️ Segurança
+- 🔒 **Autenticação JWT** - Tokens seguros com HTTPOnly cookies
+- 🔑 **Bcrypt** - Hash de senhas com salt
+- 🚫 **Rate Limiting** - Proteção contra DDoS e brute force
+- 📋 **Audit Logs** - Registro de todas as ações
+- 🛑 **CORS** - Configuração de origens permitidas
 
 ### 📊 Dashboard Profissional
-- Visualização em tempo real do status de todos os sites
-- Estatísticas de uptime dos últimos 7 dias
-- Alertas de SSL expirando em 30 dias
-- Histórico completo de verificações
-
-### 🔐 Segurança
-- Autenticação JWT com cookies HTTPOnly
-- Senhas com hash bcrypt
-- Validação de dados com Pydantic
-- Proteção contra exposição de portas críticas
+- 📈 **Métricas em Tempo Real** - Status de todos os sites
+- 📉 **Gráficos de Performance** - Uptime dos últimos 7/30 dias
+- 🎯 **Alertas Inteligentes** - SSL expirando, sites offline
+- 📝 **Histórico Completo** - Todas as verificações salvas
 
 ---
 
 ## 🛠️ Stack Tecnológica
 
-- **Backend**: FastAPI 0.109+ (Python 3.11+)
-- **Workers**: Celery + Redis (processamento assíncrono)
-- **Banco de Dados**: SQLite (MVP) / PostgreSQL (produção)
-- **ORM**: SQLAlchemy 2.0
-- **Frontend**: Jinja2 Templates + TailwindCSS (via CDN)
+### Backend
+- **Framework**: FastAPI 0.109+ (async/await)
+- **Workers**: Celery + Redis (tarefas assíncronas)
+- **ORM**: SQLAlchemy 2.0 (async)
 - **Autenticação**: JWT (python-jose) + Bcrypt (passlib)
-- **HTTP Client**: HTTPX (moderno e assíncrono)
+- **HTTP Client**: HTTPX (async)
+- **Browser Automation**: Playwright
+
+### Banco de Dados
+- **Desenvolvimento**: SQLite
+- **Produção**: PostgreSQL 15 Alpine
+- **Cache**: Redis 7 Alpine
+- **Connection Pooling**: QueuePool (size 20, max overflow 40)
+
+### Frontend
+- **Templates**: Jinja2
+- **CSS**: TailwindCSS (via CDN)
+- **Icons**: Heroicons
+- **Charts**: Chart.js
+
+### Infraestrutura
+- **Containerização**: Docker + Docker Compose
+- **Reverse Proxy**: Nginx (rate limiting + SSL)
+- **SSL/TLS**: Let's Encrypt (Certbot)
+- **Firewall**: UFW + Fail2Ban
+- **Monitoring**: Healthchecks + Prometheus
+- **Logging**: Structured JSON logs
+
+### Integrações
+- **Pagamentos**: Asaas API
+- **Alertas**: Telegram Bot API
+- **Performance**: Google PageSpeed Insights
+- **Monitoramento**: Sentry (error tracking)
 
 ---
 
-## 📦 Instalação e Execução
+## ⚡ Instalação Rápida
 
-### Opção 1: Docker (Recomendado)
+### � Instalação Automatizada (Ubuntu)
+
+O método mais rápido para colocar em produção:
 
 ```bash
+# 1. Clone o repositório
+git clone https://github.com/GuilhermeSantiago921/sentinelweb.git
+cd sentinelweb
+
+# 2. Execute o instalador automático (Ubuntu 20.04, 22.04, 24.04)
+sudo bash install.sh
+```
+
+**O script instala automaticamente:**
+- ✅ Docker & Docker Compose
+- ✅ PostgreSQL 15 + Redis
+- ✅ Nginx + SSL/TLS (Let's Encrypt)
+- ✅ UFW Firewall + Fail2Ban
+- ✅ Backups automáticos (diários)
+- ✅ Gera credenciais fortes
+- ✅ Cria superusuário
+
+**Tempo:** 15-30 minutos  
+**Requisitos:** Ubuntu Server + Domínio apontando para o IP
+
+📖 **Guia Completo:** [INSTALL_GUIDE.md](INSTALL_GUIDE.md)
+
+---
+
+### 🐳 Docker Compose (Desenvolvimento)
+
+```bash
+# 1. Clone o repositório
+git clone https://github.com/GuilhermeSantiago921/sentinelweb.git
+cd sentinelweb
+
+# 2. Configure o ambiente
+cp .env.development.example .env
+
+# 3. Suba os containers
+docker compose up -d
+
+# 4. Crie um superusuário
+docker compose exec web python create_superuser.py
+
+# 5. Acesse
+# http://localhost:8000
+```
+
+---
+
+### 💻 Instalação Local (Desenvolvimento)
+
+```bash
+# 1. Clone o repositório
+git clone https://github.com/GuilhermeSantiago921/sentinelweb.git
+cd sentinelweb
+
+# 2. Crie ambiente virtual
+python3 -m venv venv
+source venv/bin/activate  # Linux/Mac
+# venv\Scripts\activate    # Windows
+
+# 3. Instale dependências
+pip install -r requirements.txt
+
+# 4. Configure ambiente
+cp .env.development.example .env
+
+# 5. Instale Playwright browsers
+playwright install chromium
+
+# 6. Execute a aplicação
+uvicorn main:app --reload
+
+# 7. Em outro terminal, execute o Celery
+celery -A celery_app worker --loglevel=info
+celery -A celery_app beat --loglevel=info
+```
+
+---
 # 1. Clone ou entre no diretório do projeto
 cd sentinelweb
 
