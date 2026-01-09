@@ -1145,32 +1145,63 @@ async def get_site_history(
 async def update_profile(
     request: Request,
     user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-    email: str = Form(...),
-    password: str = Form(...),
-    password_confirm: str = Form(...),
-    company_name: str = Form(None),
-    cpf_cnpj: str = Form(...)
+    db: Session = Depends(get_db)
 ):
-    """Atualiza informações do perfil do usuário"""
-    # Validações
-    if password != password_confirm:
-        return JSONResponse(status_code=400, content={"error": "As senhas não coincidem"})
-    
-    if len(password) < 6:
-        return JSONResponse(status_code=400, content={"error": "A senha deve ter no mínimo 6 caracteres"})
-    
-    # Valida CPF/CNPJ
-    cpf_cnpj_clean = cpf_cnpj.replace(".", "").replace("-", "").replace("/", "")
-    if len(cpf_cnpj_clean) not in [11, 14]:
-        return JSONResponse(status_code=400, content={"error": "CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos"})
-    
-    # Atualiza usuário
-    user.email = email
-    user.company_name = company_name
-    user.cpf_cnpj = cpf_cnpj_clean
-    user.hashed_password = get_password_hash(password)
-    
-    db.commit()
-    
-    return {"message": "Perfil atualizado com sucesso"}
+    """Atualiza informações do perfil do usuário (JSON ou Form)"""
+    try:
+        # Tenta ler JSON primeiro (modal CPF/CNPJ)
+        data = await request.json()
+        
+        # Se veio apenas cpf_cnpj (modal), atualiza apenas isso
+        if 'cpf_cnpj' in data and len(data) == 1:
+            cpf_cnpj_clean = data['cpf_cnpj'].replace(".", "").replace("-", "").replace("/", "")
+            if len(cpf_cnpj_clean) not in [11, 14]:
+                return JSONResponse(
+                    status_code=400, 
+                    content={"detail": "CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos"}
+                )
+            
+            user.cpf_cnpj = cpf_cnpj_clean
+            db.commit()
+            return {"message": "CPF/CNPJ atualizado com sucesso"}
+        
+        # Se veio dados completos de perfil
+        email = data.get('email')
+        password = data.get('password')
+        password_confirm = data.get('password_confirm')
+        company_name = data.get('company_name')
+        cpf_cnpj = data.get('cpf_cnpj')
+        
+        # Validações
+        if password and password != password_confirm:
+            return JSONResponse(status_code=400, content={"detail": "As senhas não coincidem"})
+        
+        if password and len(password) < 6:
+            return JSONResponse(status_code=400, content={"detail": "A senha deve ter no mínimo 6 caracteres"})
+        
+        # Valida CPF/CNPJ se fornecido
+        if cpf_cnpj:
+            cpf_cnpj_clean = cpf_cnpj.replace(".", "").replace("-", "").replace("/", "")
+            if len(cpf_cnpj_clean) not in [11, 14]:
+                return JSONResponse(
+                    status_code=400, 
+                    content={"detail": "CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos"}
+                )
+            user.cpf_cnpj = cpf_cnpj_clean
+        
+        # Atualiza campos fornecidos
+        if email:
+            user.email = email
+        if company_name:
+            user.company_name = company_name
+        if password:
+            user.hashed_password = get_password_hash(password)
+        
+        db.commit()
+        return {"message": "Perfil atualizado com sucesso"}
+        
+    except Exception as e:
+        return JSONResponse(
+            status_code=400, 
+            content={"detail": str(e)}
+        )
