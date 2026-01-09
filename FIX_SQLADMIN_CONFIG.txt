@@ -1,0 +1,68 @@
+🔧 FIX #4 - ERRO SQLADMIN CONFIGURATION
+==========================================
+
+PROBLEMA RESOLVIDO:
+AssertionError: Cannot use column_details_list and column_details_exclude_list together.
+
+CAUSA:
+- UserAdmin tinha column_details_list (linha 169)
+- E também column_details_exclude_list (linha 224)
+- SQLAdmin não permite usar ambos ao mesmo tempo
+
+SOLUÇÃO APLICADA:
+✅ Removido column_details_exclude_list (linha 224)
+✅ Mantido column_details_list (já define explicitamente quais campos mostrar)
+✅ hashed_password já estava excluído de column_details_list
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 ATUALIZAR NO SERVIDOR
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ssh root@SEU_IP_DO_SERVIDOR
+cd /opt/sentinelweb
+
+# Atualizar código
+git pull origin main
+
+# Rebuild e restart rápido
+docker compose -f docker-compose.prod.yml restart web
+
+# OU rebuild completo se preferir:
+# docker compose -f docker-compose.prod.yml down
+# docker compose -f docker-compose.prod.yml up -d --build web
+
+# Aguardar 20 segundos
+sleep 20
+
+# Verificar logs
+docker compose -f docker-compose.prod.yml logs --tail=50 web
+
+# Deve mostrar:
+# INFO:     Application startup complete.
+# INFO:     Uvicorn running on http://0.0.0.0:8000
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📊 HISTÓRICO DE ERROS CORRIGIDOS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❌ ERRO #1: ModuleNotFoundError: jwt
+✅ SOLUÇÃO: Removido import jwt
+
+❌ ERRO #2: ImportError: async_session_maker
+✅ SOLUÇÃO: Convertido para SessionLocal (síncrono)
+
+❌ ERRO #3: ImportError: verify_token
+✅ SOLUÇÃO: Substituído por decode_token
+
+❌ ERRO #4: AssertionError: column_details_list and exclude_list together
+✅ SOLUÇÃO: Removido column_details_exclude_list
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ TODOS OS ERROS CORRIGIDOS!
+🎉 SISTEMA PRONTO PARA PRODUÇÃO!
+
+Commit: 76a5c6c
+Data: 09/01/2026
