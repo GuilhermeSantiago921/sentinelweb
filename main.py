@@ -14,6 +14,7 @@ from sqlalchemy import func
 from typing import Optional
 from datetime import datetime, timedelta, timezone
 import os
+import redis
 
 # Imports locais
 from database import get_db, init_db, engine
@@ -27,6 +28,10 @@ from auth import (
     get_current_user, get_optional_user, get_user_by_email
 )
 from tasks import scan_site, scan_all_sites
+
+# SQLAdmin imports
+from sqladmin import Admin
+from starlette.middleware.sessions import SessionMiddleware
 
 
 # ============================================
@@ -132,6 +137,130 @@ def from_json(value):
 templates.env.filters["datetime"] = format_datetime
 templates.env.filters["latency"] = format_latency
 templates.env.filters["from_json"] = from_json
+
+
+# ============================================
+# SQLADMIN - PAINEL ADMINISTRATIVO
+# ============================================
+
+# Middleware de sessão (obrigatório para SQLAdmin Auth)
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv("SECRET_KEY", "seu-secret-key-super-seguro-aqui"),
+    session_cookie="admin_session",
+    max_age=3600 * 24  # 24 horas
+)
+
+# Importa as views do admin
+from admin import (
+    AdminAuth,
+    UserAdmin,
+    SiteAdmin,
+    PaymentAdmin,
+    MonitorLogAdmin,
+    SystemConfigAdmin
+)
+
+# Inicializa o SQLAdmin
+admin = Admin(
+    app,
+    engine,
+    title="SentinelWeb Admin",
+    authentication_backend=AdminAuth(secret_key=os.getenv("SECRET_KEY", "seu-secret-key-super-seguro-aqui")),
+    templates_dir="templates"
+)
+
+# Registra as views no admin
+admin.add_view(UserAdmin)
+admin.add_view(SiteAdmin)
+admin.add_view(PaymentAdmin)
+admin.add_view(MonitorLogAdmin)
+admin.add_view(SystemConfigAdmin)
+
+
+# ============================================
+# API DE ESTATÍSTICAS DO DASHBOARD ADMIN
+# ============================================
+
+@app.get("/admin/api/dashboard-stats")
+async def admin_dashboard_stats(db: Session = Depends(get_db)):
+    """
+    Endpoint que retorna KPIs para o dashboard executivo.
+    Calcula MRR, Churn Risk, Saúde Operacional, Fila Celery, etc.
+    """
+    try:
+        # Total de usuários
+        total_users = db.query(User).filter(User.is_active == True).count()
+        
+        # Distribuição de planos
+        plan_free = db.query(User).filter(User.plan_status == 'free', User.is_active == True).count()
+        plan_pro = db.query(User).filter(User.plan_status == 'pro', User.is_active == True).count()
+        plan_agency = db.query(User).filter(User.plan_status == 'agency', User.is_active == True).count()
+        
+        # MRR (Monthly Recurring Revenue)
+        # Assume: Pro = R$ 49/mês, Agency = R$ 149/mês
+        mrr = (plan_pro * 49) + (plan_agency * 149)
+        
+        # ARPU (Average Revenue Per User)
+        arpu = mrr / total_users if total_users > 0 else 0
+        
+        # Churn Risk: Usuários com pagamentos vencidos
+        churn_risk = db.query(Payment).filter(
+            Payment.status == PaymentStatus.OVERDUE
+        ).count()
+        
+        # Total de sites
+        total_sites = db.query(Site).filter(Site.is_active == True).count()
+        
+        # Distribuição de status dos sites
+        sites_online = db.query(Site).filter(
+            Site.is_active == True,
+            Site.current_status == 'online'
+        ).count()
+        
+        sites_offline = db.query(Site).filter(
+            Site.is_active == True,
+            Site.current_status == 'offline'
+        ).count()
+        
+        sites_unknown = db.query(Site).filter(
+            Site.is_active == True,
+            Site.current_status == 'unknown'
+        ).count()
+        
+        # Saúde Operacional: % de sites online
+        health_score = (sites_online / total_sites * 100) if total_sites > 0 else 100
+        
+        # Fila Celery (Redis)
+        queue_size = 0
+        try:
+            redis_client = redis.from_url(os.getenv("REDIS_URL", "redis://redis:6379/0"))
+            queue_size = redis_client.llen("celery")
+        except Exception as e:
+            print(f"⚠️ Erro ao conectar no Redis: {str(e)}")
+        
+        return {
+            "mrr": mrr,
+            "arpu": arpu,
+            "churn_risk": churn_risk,
+            "health_score": round(health_score, 1),
+            "queue_size": queue_size,
+            "total_users": total_users,
+            "total_sites": total_sites,
+            "plan_free": plan_free,
+            "plan_pro": plan_pro,
+            "plan_agency": plan_agency,
+            "sites_online": sites_online,
+            "sites_offline": sites_offline,
+            "sites_unknown": sites_unknown
+        }
+        
+    except Exception as e:
+        print(f"❌ Erro ao calcular estatísticas do admin: {str(e)}")
+        return JSONResponse(
+            status_code=500,
+            content={"error": "Erro ao carregar estatísticas"}
+        )
 
 
 # ============================================
