@@ -472,26 +472,78 @@ log_warning "As credenciais serão salvas no arquivo .env"
 # PASSO 10: COLETAR INFORMAÇÕES DO USUÁRIO
 ################################################################################
 
-log_step 10 $TOTAL_STEPS "Configuração do Domínio e Email"
+log_step 10 $TOTAL_STEPS "Configuração de Acesso"
 
 echo ""
-read -p "$(echo -e ${CYAN}'Digite o domínio da aplicação (ex: sentinelweb.com.br): '${NC})" APP_DOMAIN
-read -p "$(echo -e ${CYAN}'Digite o email para SSL/TLS (ex: admin@sentinelweb.com.br): '${NC})" ADMIN_EMAIL
+log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+log_info "MODO DE INSTALAÇÃO:"
+log_info "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo ""
+echo "  1) ${GREEN}Com Domínio${NC} - Produção com HTTPS/SSL"
+echo "     • Requer domínio apontando para este servidor"
+echo "     • Obtém certificado SSL (Let's Encrypt)"
+echo "     • Acesso via https://seudominio.com"
+echo ""
+echo "  2) ${YELLOW}Apenas IP${NC} - Teste/Desenvolvimento (HTTP)"
+echo "     • Sem necessidade de domínio"
+echo "     • Sem SSL (apenas HTTP)"
+echo "     • Acesso via http://SEU_IP"
+echo ""
 
-# Validar domínio
-if [ -z "$APP_DOMAIN" ]; then
-    log_error "Domínio não pode estar vazio!"
-    exit 1
+USE_DOMAIN=""
+while [[ ! "$USE_DOMAIN" =~ ^[12]$ ]]; do
+    read -p "$(echo -e ${CYAN}'Escolha o modo (1 ou 2): '${NC})" USE_DOMAIN
+done
+
+if [ "$USE_DOMAIN" = "1" ]; then
+    # MODO COM DOMÍNIO
+    log_info "Modo: Produção com Domínio e SSL"
+    echo ""
+    read -p "$(echo -e ${CYAN}'Digite o domínio da aplicação (ex: sentinelweb.com.br): '${NC})" APP_DOMAIN
+    read -p "$(echo -e ${CYAN}'Digite o email para SSL/TLS (ex: admin@sentinelweb.com.br): '${NC})" ADMIN_EMAIL
+    
+    # Validar domínio
+    if [ -z "$APP_DOMAIN" ]; then
+        log_error "Domínio não pode estar vazio!"
+        exit 1
+    fi
+    
+    # Validar email
+    if [ -z "$ADMIN_EMAIL" ]; then
+        log_error "Email não pode estar vazio!"
+        exit 1
+    fi
+    
+    log_success "Domínio: $APP_DOMAIN"
+    log_success "Email: $ADMIN_EMAIL"
+    
+    INSTALL_MODE="domain"
+    
+else
+    # MODO APENAS IP (SEM DOMÍNIO)
+    log_info "Modo: Teste com IP (sem SSL)"
+    echo ""
+    
+    # Detectar IP público automaticamente
+    SERVER_IP=$(curl -4 -s ifconfig.me || curl -4 -s icanhazip.com || echo "IP_NAO_DETECTADO")
+    
+    log_info "IP público detectado: $SERVER_IP"
+    echo ""
+    read -p "$(echo -e ${CYAN}'Confirme ou corrija o IP do servidor: '${NC})" -i "$SERVER_IP" -e CONFIRMED_IP
+    
+    if [ -z "$CONFIRMED_IP" ]; then
+        CONFIRMED_IP=$SERVER_IP
+    fi
+    
+    APP_DOMAIN=$CONFIRMED_IP
+    ADMIN_EMAIL="admin@localhost"
+    
+    log_success "IP do servidor: $CONFIRMED_IP"
+    log_warning "SSL/HTTPS NÃO será configurado (apenas HTTP)"
+    log_info "Acesso será via: http://$CONFIRMED_IP"
+    
+    INSTALL_MODE="ip-only"
 fi
-
-# Validar email
-if [ -z "$ADMIN_EMAIL" ]; then
-    log_error "Email não pode estar vazio!"
-    exit 1
-fi
-
-log_success "Domínio: $APP_DOMAIN"
-log_success "Email: $ADMIN_EMAIL"
 
 ################################################################################
 # PASSO 11: CRIAR ARQUIVO .env
@@ -607,23 +659,90 @@ else
 fi
 
 ################################################################################
-# PASSO 13: CONFIGURAR NGINX (HTTP TEMPORÁRIO)
+# PASSO 13: CONFIGURAR NGINX
 ################################################################################
 
-log_step 13 $TOTAL_STEPS "Configurando Nginx (HTTP temporário)"
+log_step 13 $TOTAL_STEPS "Configurando Nginx"
 
 NGINX_CONFIG="/etc/nginx/sites-available/sentinelweb"
 NGINX_ENABLED="/etc/nginx/sites-enabled/sentinelweb"
-
-log_info "Criando configuração temporária HTTP (para obter SSL)..."
 
 # Backup da configuração antiga se existir
 if [ -f "$NGINX_CONFIG" ]; then
     cp $NGINX_CONFIG ${NGINX_CONFIG}.backup.$(date +%Y%m%d_%H%M%S)
 fi
 
-# Criar configuração temporária HTTP-only para Certbot
-cat > $NGINX_CONFIG << EOF
+if [ "$INSTALL_MODE" = "ip-only" ]; then
+    # ============================================
+    # MODO IP-ONLY: Configuração HTTP simples
+    # ============================================
+    log_info "Criando configuração HTTP simples (sem SSL)..."
+    
+    cat > $NGINX_CONFIG << 'EOF'
+# Configuração HTTP simples - Modo de teste (sem SSL)
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    
+    # Security headers
+    add_header X-Frame-Options "SAMEORIGIN" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    server_tokens off;
+    
+    # Logs
+    access_log /var/log/nginx/sentinelweb_access.log combined;
+    error_log /var/log/nginx/sentinelweb_error.log warn;
+    
+    # Client settings
+    client_max_body_size 100M;
+    client_body_timeout 60s;
+    client_header_timeout 60s;
+    
+    # Gzip
+    gzip on;
+    gzip_vary on;
+    gzip_types text/plain text/css text/xml text/javascript application/json application/javascript;
+    
+    # Proxy settings
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        
+        # Timeouts
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+        
+        # Buffering
+        proxy_buffering on;
+        proxy_buffer_size 4k;
+        proxy_buffers 8 4k;
+        proxy_busy_buffers_size 8k;
+    }
+    
+    # Health check
+    location /health {
+        proxy_pass http://127.0.0.1:8000/health;
+        access_log off;
+    }
+}
+EOF
+    
+    log_success "Configuração HTTP criada (sem SSL)!"
+    log_warning "Acesso será via HTTP (porta 80): http://$APP_DOMAIN"
+    
+else
+    # ============================================
+    # MODO DOMAIN: Configuração HTTP temporária para SSL
+    # ============================================
+    log_info "Criando configuração HTTP temporária (para obter SSL)..."
+    
+    cat > $NGINX_CONFIG << EOF
 # Configuração temporária para obtenção de certificado SSL
 server {
     listen 80;
@@ -646,8 +765,9 @@ server {
     }
 }
 EOF
-
-log_success "Configuração HTTP temporária criada!"
+    
+    log_success "Configuração HTTP temporária criada!"
+fi
 
 # Habilitar site
 if [ -L "$NGINX_ENABLED" ]; then
@@ -665,7 +785,7 @@ log_info "Testando configuração do Nginx..."
 if nginx -t; then
     log_success "Configuração do Nginx válida!"
     systemctl reload nginx
-    log_success "Nginx rodando em modo HTTP temporário"
+    log_success "Nginx rodando!"
 else
     log_error "Erro na configuração do Nginx!"
     exit 1
@@ -675,83 +795,102 @@ fi
 # PASSO 14: OBTER CERTIFICADO SSL
 ################################################################################
 
-log_step 14 $TOTAL_STEPS "Obtendo Certificado SSL (Let's Encrypt)"
-
-# Criar diretório webroot
-mkdir -p /var/www/certbot
-chown -R www-data:www-data /var/www/certbot
-
-log_info "Obtendo certificado SSL para $APP_DOMAIN..."
-log_warning "Certifique-se de que o domínio aponta para este servidor!"
+log_step 14 $TOTAL_STEPS "Configurando SSL/TLS"
 
 SSL_OBTAINED=false
 
-if confirm "Deseja obter o certificado SSL agora?"; then
-    if certbot certonly \
-        --webroot \
-        -w /var/www/certbot \
-        --non-interactive \
-        --agree-tos \
-        --email "$ADMIN_EMAIL" \
-        -d "$APP_DOMAIN" \
-        -d "www.$APP_DOMAIN"; then
-        
-        log_success "Certificado SSL obtido com sucesso!"
-        SSL_OBTAINED=true
-        
-        # Configurar renovação automática
-        log_info "Configurando renovação automática..."
-        (crontab -l 2>/dev/null; echo "0 3 * * * certbot renew --quiet --post-hook 'systemctl reload nginx'") | crontab -
-        
-        log_success "Renovação automática configurada (3AM diariamente)"
+if [ "$INSTALL_MODE" = "ip-only" ]; then
+    # ============================================
+    # MODO IP-ONLY: Pular SSL
+    # ============================================
+    log_warning "Modo IP-only: SSL/HTTPS não será configurado"
+    log_info "Acesso será via HTTP: http://$APP_DOMAIN"
+    log_info "Para adicionar SSL depois, você precisará:"
+    log_info "  1. Configurar um domínio apontando para este servidor"
+    log_info "  2. Executar: certbot certonly --webroot -w /var/www/certbot -d seudominio.com"
+    log_info "  3. Reconfigurar Nginx com o template completo"
+    
+    SSL_OBTAINED=false
+    
+else
+    # ============================================
+    # MODO DOMAIN: Obter certificado SSL
+    # ============================================
+    
+    # Criar diretório webroot
+    mkdir -p /var/www/certbot
+    chown -R www-data:www-data /var/www/certbot
+    
+    log_info "Obtendo certificado SSL para $APP_DOMAIN..."
+    log_warning "Certifique-se de que o domínio aponta para este servidor!"
+    
+    if confirm "Deseja obter o certificado SSL agora?"; then
+        if certbot certonly \
+            --webroot \
+            -w /var/www/certbot \
+            --non-interactive \
+            --agree-tos \
+            --email "$ADMIN_EMAIL" \
+            -d "$APP_DOMAIN" \
+            -d "www.$APP_DOMAIN"; then
+            
+            log_success "Certificado SSL obtido com sucesso!"
+            SSL_OBTAINED=true
+            
+            # Configurar renovação automática
+            log_info "Configurando renovação automática..."
+            (crontab -l 2>/dev/null; echo "0 3 * * * certbot renew --quiet --post-hook 'systemctl reload nginx'") | crontab -
+            
+            log_success "Renovação automática configurada (3AM diariamente)"
+        else
+            log_error "Falha ao obter certificado SSL!"
+            log_warning "Você pode tentar manualmente depois com:"
+            log_warning "  certbot certonly --webroot -w /var/www/certbot -d $APP_DOMAIN -d www.$APP_DOMAIN"
+            SSL_OBTAINED=false
+        fi
     else
-        log_error "Falha ao obter certificado SSL!"
-        log_warning "Você pode tentar manualmente depois com:"
-        log_warning "  certbot certonly --webroot -w /var/www/certbot -d $APP_DOMAIN -d www.$APP_DOMAIN"
+        log_warning "Certificado SSL NÃO obtido."
+        log_info "Execute manualmente: certbot certonly --webroot -w /var/www/certbot -d $APP_DOMAIN"
         SSL_OBTAINED=false
     fi
-else
-    log_warning "Certificado SSL NÃO obtido."
-    log_info "Execute manualmente: certbot certonly --webroot -w /var/www/certbot -d $APP_DOMAIN"
-    SSL_OBTAINED=false
-fi
-
-################################################################################
-# PASSO 14.5: CONFIGURAR NGINX COM SSL (SE OBTIDO)
-################################################################################
-
-if [ "$SSL_OBTAINED" = true ]; then
-    log_info "Configurando Nginx com SSL/HTTPS..."
     
-    # Verificar se o template existe
-    if [ -f "$INSTALL_DIR/nginx-sentinelweb.conf" ]; then
-        # Copiar configuração completa com SSL
-        cp $INSTALL_DIR/nginx-sentinelweb.conf $NGINX_CONFIG
+    ################################################################################
+    # PASSO 14.5: CONFIGURAR NGINX COM SSL (SE OBTIDO)
+    ################################################################################
+    
+    if [ "$SSL_OBTAINED" = true ]; then
+        log_info "Configurando Nginx com SSL/HTTPS..."
         
-        # Substituir domínio
-        sed -i "s/seudominio\.com\.br/$APP_DOMAIN/g" $NGINX_CONFIG
-        sed -i "s/seu-email@dominio\.com\.br/$ADMIN_EMAIL/g" $NGINX_CONFIG
-        
-        # Testar configuração
-        log_info "Testando configuração HTTPS do Nginx..."
-        if nginx -t; then
-            systemctl reload nginx
-            log_success "Nginx configurado com SSL/HTTPS!"
-            log_success "Acesse: https://$APP_DOMAIN"
+        # Verificar se o template existe
+        if [ -f "$INSTALL_DIR/nginx-sentinelweb.conf" ]; then
+            # Copiar configuração completa com SSL
+            cp $INSTALL_DIR/nginx-sentinelweb.conf $NGINX_CONFIG
+            
+            # Substituir domínio
+            sed -i "s/seudominio\.com\.br/$APP_DOMAIN/g" $NGINX_CONFIG
+            sed -i "s/seu-email@dominio\.com\.br/$ADMIN_EMAIL/g" $NGINX_CONFIG
+            
+            # Testar configuração
+            log_info "Testando configuração HTTPS do Nginx..."
+            if nginx -t; then
+                systemctl reload nginx
+                log_success "Nginx configurado com SSL/HTTPS!"
+                log_success "Acesse: https://$APP_DOMAIN"
+            else
+                log_error "Erro na configuração HTTPS do Nginx!"
+                log_warning "Mantendo configuração HTTP temporária"
+            fi
         else
-            log_error "Erro na configuração HTTPS do Nginx!"
+            log_warning "Template nginx-sentinelweb.conf não encontrado!"
             log_warning "Mantendo configuração HTTP temporária"
         fi
     else
-        log_warning "Template nginx-sentinelweb.conf não encontrado!"
-        log_warning "Mantendo configuração HTTP temporária"
+        log_warning "Nginx permanecerá em modo HTTP até que o SSL seja obtido"
+        log_info "Após obter SSL, reconfigure com:"
+        log_info "  cp $INSTALL_DIR/nginx-sentinelweb.conf $NGINX_CONFIG"
+        log_info "  sed -i 's/seudominio\.com\.br/$APP_DOMAIN/g' $NGINX_CONFIG"
+        log_info "  nginx -t && systemctl reload nginx"
     fi
-else
-    log_warning "Nginx permanecerá em modo HTTP até que o SSL seja obtido"
-    log_info "Após obter SSL, reconfigure com:"
-    log_info "  cp $INSTALL_DIR/nginx-sentinelweb.conf $NGINX_CONFIG"
-    log_info "  sed -i 's/seudominio\.com\.br/$APP_DOMAIN/g' $NGINX_CONFIG"
-    log_info "  nginx -t && systemctl reload nginx"
 fi
 
 ################################################################################
@@ -952,7 +1091,23 @@ echo -e "${CYAN}🎉 SENTINELWEB INSTALADO COM SUCESSO! 🎉${NC}"
 echo ""
 echo -e "${YELLOW}📍 INFORMAÇÕES IMPORTANTES:${NC}"
 echo ""
-echo -e "   ${BLUE}Domínio:${NC} https://$APP_DOMAIN"
+
+if [ "$INSTALL_MODE" = "ip-only" ]; then
+    echo -e "   ${BLUE}Modo:${NC} Teste/Desenvolvimento (HTTP apenas)"
+    echo -e "   ${BLUE}Acesso:${NC} http://$APP_DOMAIN"
+    echo -e "   ${RED}⚠️  SSL/HTTPS:${NC} NÃO CONFIGURADO"
+else
+    if [ "$SSL_OBTAINED" = true ]; then
+        echo -e "   ${BLUE}Modo:${NC} Produção (HTTPS)"
+        echo -e "   ${BLUE}Acesso:${NC} https://$APP_DOMAIN"
+        echo -e "   ${GREEN}✓ SSL/HTTPS:${NC} CONFIGURADO"
+    else
+        echo -e "   ${BLUE}Modo:${NC} Produção (HTTP temporário)"
+        echo -e "   ${BLUE}Acesso:${NC} http://$APP_DOMAIN"
+        echo -e "   ${YELLOW}⚠️  SSL/HTTPS:${NC} NÃO OBTIDO (configure depois)"
+    fi
+fi
+
 echo -e "   ${BLUE}Diretório:${NC} $INSTALL_DIR"
 echo -e "   ${BLUE}Dados:${NC} $DATA_DIR"
 echo -e "   ${BLUE}Backups:${NC} $BACKUP_DIR"
@@ -976,8 +1131,24 @@ echo -e "   2️⃣  Se ainda não criou superusuário, execute:"
 echo -e "      ${CYAN}cd $INSTALL_DIR${NC}"
 echo -e "      ${CYAN}docker compose -f docker-compose.prod.yml exec web python create_superuser.py${NC}"
 echo ""
-echo -e "   3️⃣  Acesse sua aplicação:"
-echo -e "      ${CYAN}https://$APP_DOMAIN${NC}"
+
+if [ "$INSTALL_MODE" = "ip-only" ]; then
+    echo -e "   3️⃣  Acesse sua aplicação (HTTP):"
+    echo -e "      ${CYAN}http://$APP_DOMAIN${NC}"
+    echo ""
+    echo -e "   ${YELLOW}💡 Para adicionar HTTPS/SSL depois:${NC}"
+    echo -e "      • Configure um domínio apontando para este servidor"
+    echo -e "      • Execute: ${CYAN}certbot certonly --webroot -w /var/www/certbot -d seudominio.com${NC}"
+    echo -e "      • Copie a configuração completa do Nginx"
+else
+    echo -e "   3️⃣  Acesse sua aplicação:"
+    if [ "$SSL_OBTAINED" = true ]; then
+        echo -e "      ${CYAN}https://$APP_DOMAIN${NC}"
+    else
+        echo -e "      ${CYAN}http://$APP_DOMAIN${NC} (temporário - configure SSL)"
+    fi
+fi
+
 echo ""
 echo -e "   4️⃣  Verifique os logs:"
 echo -e "      ${CYAN}docker compose -f docker-compose.prod.yml logs -f${NC}"
