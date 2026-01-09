@@ -220,9 +220,6 @@ class UserAdmin(ModelView, model=User):
     # Campos sensíveis ocultos
     form_excluded_columns = [User.hashed_password, User.created_at]
     
-    # Campos apenas leitura
-    column_details_exclude_list = [User.hashed_password]
-    
     # Paginação
     page_size = 50
     page_size_options = [25, 50, 100, 200]
