@@ -377,10 +377,6 @@ chmod 777 .
 
 ---
 
-## 📄 Licença
-
-Este projeto foi desenvolvido como MVP educacional. Sinta-se livre para usar e modificar.
-
 ---
 
 ## 👨‍💻 Autor
