@@ -1229,3 +1229,227 @@ async def update_profile(
             status_code=400, 
             content={"detail": str(e)}
         )
+
+
+# ============================================
+# ROTA DE UPGRADE DE PLANO
+# ============================================
+
+@app.get("/upgrade", response_class=HTMLResponse)
+async def upgrade_page(
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Página de upgrade de plano"""
+    from plan_limits import get_plan_comparison
+    
+    plans = get_plan_comparison()
+    
+    return templates.TemplateResponse("upgrade.html", {
+        "request": request,
+        "user": user,
+        "current_plan": user.plan_status,
+        "plans": plans
+    })
+
+
+@app.post("/upgrade/{plan}")
+async def process_upgrade(
+    plan: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Processa upgrade de plano"""
+    if plan not in ['pro', 'agency']:
+        raise HTTPException(status_code=400, detail="Plano inválido")
+    
+    # TODO: Integrar com gateway de pagamento
+    # Por enquanto, apenas redireciona para página de contato
+    
+    return RedirectResponse(url="/subscription", status_code=302)
+
+
+# ============================================
+# ROTAS ADMINISTRATIVAS (SUPERUSER)
+# ============================================
+
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_panel(
+    request: Request,
+    user: User = Depends(get_current_active_superuser),
+    db: Session = Depends(get_db)
+):
+    """Painel administrativo"""
+    # Estatísticas gerais
+    total_users = db.query(User).count()
+    active_users = db.query(User).filter(User.is_active == True).count()
+    total_sites = db.query(Site).count()
+    total_logs = db.query(MonitorLog).count()
+    
+    # Usuários recentes
+    recent_users = db.query(User).order_by(User.created_at.desc()).limit(10).all()
+    
+    # Sites mais monitorados
+    top_sites = db.query(Site).order_by(Site.id.desc()).limit(10).all()
+    
+    return templates.TemplateResponse("admin.html", {
+        "request": request,
+        "user": user,
+        "stats": {
+            "total_users": total_users,
+            "active_users": active_users,
+            "total_sites": total_sites,
+            "total_logs": total_logs
+        },
+        "recent_users": recent_users,
+        "top_sites": top_sites
+    })
+
+
+@app.get("/admin/users", response_class=HTMLResponse)
+async def admin_users(
+    request: Request,
+    user: User = Depends(get_current_active_superuser),
+    db: Session = Depends(get_db)
+):
+    """Lista de todos os usuários"""
+    users = db.query(User).order_by(User.created_at.desc()).all()
+    
+    return templates.TemplateResponse("admin_users.html", {
+        "request": request,
+        "user": user,
+        "users": users
+    })
+
+
+@app.post("/admin/users/{user_id}/toggle-active")
+async def admin_toggle_user(
+    user_id: int,
+    admin: User = Depends(get_current_active_superuser),
+    db: Session = Depends(get_db)
+):
+    """Ativa/desativa usuário"""
+    target_user = db.query(User).filter(User.id == user_id).first()
+    
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    if target_user.is_superuser:
+        raise HTTPException(status_code=403, detail="Não é possível desativar outro administrador")
+    
+    target_user.is_active = not target_user.is_active
+    db.commit()
+    
+    return RedirectResponse(url="/admin/users", status_code=302)
+
+
+@app.post("/admin/users/{user_id}/change-plan")
+async def admin_change_plan(
+    user_id: int,
+    plan: str = Form(...),
+    admin: User = Depends(get_current_active_superuser),
+    db: Session = Depends(get_db)
+):
+    """Altera plano de um usuário"""
+    target_user = db.query(User).filter(User.id == user_id).first()
+    
+    if not target_user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    
+    if plan not in ['free', 'pro', 'agency']:
+        raise HTTPException(status_code=400, detail="Plano inválido")
+    
+    target_user.plan_status = plan
+    db.commit()
+    
+    return RedirectResponse(url="/admin/users", status_code=302)
+
+
+# ============================================
+# ROTAS DE API - HEARTBEAT
+# ============================================
+
+@app.get("/heartbeats", response_class=HTMLResponse)
+async def heartbeats_page(
+    request: Request,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Página de gerenciamento de heartbeats"""
+    from plan_limits import has_feature
+    
+    # Verifica se o usuário tem acesso à feature
+    if not has_feature(user, 'heartbeat'):
+        return templates.TemplateResponse("upgrade.html", {
+            "request": request,
+            "user": user,
+            "current_plan": user.plan_status,
+            "message": "Heartbeat Monitoring está disponível nos planos Pro e Agency"
+        })
+    
+    # Busca heartbeats do usuário
+    heartbeats = db.query(HeartbeatCheck).filter(
+        HeartbeatCheck.owner_id == user.id
+    ).order_by(HeartbeatCheck.name).all()
+    
+    return templates.TemplateResponse("heartbeats.html", {
+        "request": request,
+        "user": user,
+        "heartbeats": heartbeats
+    })
+
+
+@app.get("/heartbeats/add", response_class=HTMLResponse)
+async def add_heartbeat_page(
+    request: Request,
+    user: User = Depends(get_current_user)
+):
+    """Página para adicionar novo heartbeat"""
+    from plan_limits import has_feature
+    
+    if not has_feature(user, 'heartbeat'):
+        raise HTTPException(status_code=403, detail="Feature não disponível no seu plano")
+    
+    return templates.TemplateResponse("heartbeat_form.html", {
+        "request": request,
+        "user": user,
+        "heartbeat": None,
+        "error": None
+    })
+
+
+@app.post("/heartbeats/add")
+async def add_heartbeat(
+    request: Request,
+    name: str = Form(...),
+    expected_period: int = Form(...),
+    grace_period: int = Form(60),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Adiciona um novo heartbeat"""
+    from plan_limits import has_feature
+    import secrets
+    
+    if not has_feature(user, 'heartbeat'):
+        raise HTTPException(status_code=403, detail="Feature não disponível no seu plano")
+    
+    # Gera slug único
+    slug = secrets.token_urlsafe(16)
+    
+    # Cria o heartbeat
+    new_heartbeat = HeartbeatCheck(
+        name=name,
+        slug=slug,
+        expected_period=expected_period,
+        grace_period=grace_period,
+        owner_id=user.id,
+        status='new'
+    )
+    
+    db.add(new_heartbeat)
+    db.commit()
+    db.refresh(new_heartbeat)
+    
+    return RedirectResponse(url="/heartbeats", status_code=302)
