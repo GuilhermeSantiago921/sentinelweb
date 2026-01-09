@@ -911,7 +911,8 @@ cd $INSTALL_DIR
 
 log_info "Construindo imagens Docker (isso pode demorar)..."
 
-if sudo -u sentinelweb docker compose -f docker-compose.prod.yml build; then
+# Usar sg para forçar carregamento do grupo docker
+if sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml build"; then
     log_success "Imagens Docker construídas!"
 else
     log_error "Falha ao construir imagens Docker!"
@@ -926,7 +927,8 @@ log_step 16 $TOTAL_STEPS "Iniciando Containers"
 
 log_info "Iniciando containers em background..."
 
-if sudo -u sentinelweb docker compose -f docker-compose.prod.yml up -d; then
+# Usar sg para forçar carregamento do grupo docker
+if sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml up -d"; then
     log_success "Containers iniciados!"
     
     # Aguardar containers ficarem saudáveis
@@ -934,7 +936,7 @@ if sudo -u sentinelweb docker compose -f docker-compose.prod.yml up -d; then
     sleep 30
     
     # Mostrar status
-    sudo -u sentinelweb docker compose -f docker-compose.prod.yml ps
+    sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml ps"
 else
     log_error "Falha ao iniciar containers!"
     exit 1
@@ -950,7 +952,7 @@ if [ -f "$INSTALL_DIR/sentinelweb.db" ]; then
     log_info "SQLite detectado - migrando para PostgreSQL..."
     
     if [ -f "$INSTALL_DIR/migrate_to_postgres.py" ]; then
-        if sudo -u sentinelweb docker compose -f docker-compose.prod.yml exec -T web python migrate_to_postgres.py; then
+        if sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml exec -T web python migrate_to_postgres.py"; then
             log_success "Migração concluída!"
             
             # Backup do SQLite
@@ -967,12 +969,12 @@ else
     log_info "Nenhum banco SQLite encontrado - criando banco PostgreSQL..."
     
     # Criar tabelas
-    sudo -u sentinelweb docker compose -f docker-compose.prod.yml exec -T web python -c "
+    sg docker -c 'sudo -u sentinelweb docker compose -f docker-compose.prod.yml exec -T web python -c "
 from database import engine, Base
 from models import User, Site, SiteCheck, HeartbeatCheck, HeartbeatPing, Payment, SystemConfig
 Base.metadata.create_all(bind=engine)
-print('Tabelas criadas com sucesso!')
-"
+print(\"Tabelas criadas com sucesso!\")
+"'
     
     log_success "Banco de dados inicializado!"
 fi
@@ -987,7 +989,7 @@ echo ""
 if confirm "Deseja criar um superusuário agora?"; then
     log_info "Criando superusuário..."
     
-    sudo -u sentinelweb docker compose -f docker-compose.prod.yml exec web python create_superuser.py
+    sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml exec web python create_superuser.py"
     
     log_success "Superusuário criado!"
 else
@@ -1074,7 +1076,7 @@ fi
 
 # Verificar Containers
 log_info "Status dos containers:"
-sudo -u sentinelweb docker compose -f docker-compose.prod.yml ps
+sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml ps"
 
 # Verificar endpoint de saúde
 log_info "Testando endpoint de saúde..."
