@@ -12,7 +12,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import os
 
 # Imports locais
@@ -163,11 +163,10 @@ async def health_check(db: Session = Depends(get_db)):
     Returns:
         JSON com status do sistema
     """
-    from datetime import datetime
     
     health_status = {
         "status": "healthy",
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "service": "sentinelweb",
         "version": "1.0.0",
         "checks": {}
@@ -478,12 +477,16 @@ async def public_status_page(
         "uptime_percentage": round((sites_online / total_sites * 100) if total_sites > 0 else 0, 1)
     }
     
+    # Função helper para o template (timezone-aware)
+    def now():
+        return datetime.now(timezone.utc)
+    
     return templates.TemplateResponse("public_status.html", {
         "request": request,
         "company_name": user.company_name or "Status Page",
         "sites": sites,
         "stats": stats,
-        "now": datetime.utcnow
+        "now": now
     })
 
 
@@ -660,13 +663,17 @@ async def dashboard(
         # Estatísticas de uso do plano
         plan_usage = get_usage_stats(user, db)
         
+        # Função helper para o template (timezone-aware)
+        def now():
+            return datetime.now(timezone.utc)
+        
         return templates.TemplateResponse("dashboard.html", {
             "request": request,
             "user": user,
             "sites": sites,
             "stats": stats,
             "plan_usage": plan_usage,
-            "now": datetime.utcnow
+            "now": now
         })
     except Exception as e:
         # Log do erro para debug
@@ -851,7 +858,7 @@ async def site_logs(
     ).order_by(MonitorLog.checked_at.desc()).limit(50).all()
     
     # Calcula média de latência dos últimos 24h
-    yesterday = datetime.utcnow() - timedelta(days=1)
+    yesterday = datetime.now(timezone.utc) - timedelta(days=1)
     avg_latency = db.query(func.avg(MonitorLog.latency_ms)).filter(
         MonitorLog.site_id == site.id,
         MonitorLog.checked_at >= yesterday,
@@ -859,7 +866,7 @@ async def site_logs(
     ).scalar()
     
     # Calcula uptime % dos últimos 7 dias
-    week_ago = datetime.utcnow() - timedelta(days=7)
+    week_ago = datetime.now(timezone.utc) - timedelta(days=7)
     total_checks = db.query(MonitorLog).filter(
         MonitorLog.site_id == site.id,
         MonitorLog.checked_at >= week_ago
