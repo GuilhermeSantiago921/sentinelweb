@@ -12,15 +12,14 @@ from sqladmin.authentication import AuthenticationBackend
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
 from sqlalchemy import select, func, and_
-from sqlalchemy.ext.asyncio import AsyncSession
-import jwt
+from sqlalchemy.orm import Session
 from datetime import datetime, timezone
 import os
 
 # Imports locais
 from models import User, Site, MonitorLog, Payment, SystemConfig
-from database import async_session_maker
-from auth import verify_token, get_password_hash, verify_password
+from database import SessionLocal
+from auth import decode_token, get_password_hash, verify_password
 
 
 # ============================================
@@ -43,12 +42,10 @@ class AdminAuth(AuthenticationBackend):
         email = form.get("username")  # SQLAdmin usa "username"
         password = form.get("password")
         
-        async with async_session_maker() as session:
+        db = SessionLocal()
+        try:
             # Busca usuário por email
-            result = await session.execute(
-                select(User).where(User.email == email)
-            )
-            user = result.scalar_one_or_none()
+            user = db.query(User).filter(User.email == email).first()
             
             # Validações críticas
             if not user:
@@ -76,6 +73,8 @@ class AdminAuth(AuthenticationBackend):
             })
             
             return True
+        finally:
+            db.close()
     
     async def logout(self, request: Request) -> bool:
         """Logout do admin"""
@@ -95,20 +94,24 @@ class AdminAuth(AuthenticationBackend):
         
         try:
             # Valida token JWT
-            payload = verify_token(token)
+            payload = decode_token(token)
+            
+            # Verifica se o token é válido
+            if not payload:
+                return False
             
             # Busca usuário no banco e valida permissões
-            async with async_session_maker() as session:
-                result = await session.execute(
-                    select(User).where(User.id == user_id)
-                )
-                user = result.scalar_one_or_none()
+            db = SessionLocal()
+            try:
+                user = db.query(User).filter(User.id == user_id).first()
                 
                 # 🔒 VALIDAÇÃO CRÍTICA: is_superuser SEMPRE
                 if not user or not user.is_superuser or not user.is_active:
                     return False
                 
                 return True
+            finally:
+                db.close()
                 
         except Exception as e:
             print(f"❌ Admin auth error: {str(e)}")

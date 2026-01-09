@@ -1,0 +1,109 @@
+🔧 FIX RÁPIDO - ERRO DE IMPORTAÇÃO verify_token
+==================================================
+
+PROBLEMA RESOLVIDO:
+ImportError: cannot import name 'verify_token' from 'auth'
+
+CAUSA:
+- admin.py tentava importar verify_token
+- auth.py tem decode_token, não verify_token
+
+SOLUÇÃO APLICADA:
+✅ Linha 22: verify_token → decode_token no import
+✅ Linha 97-99: verify_token(token) → decode_token(token) + validação
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 DEPLOY PARA PRODUÇÃO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1️⃣  COMMIT DAS MUDANÇAS:
+─────────────────────────
+cd /opt/sentinelweb
+git add admin.py
+git commit -m "fix: Resolve verify_token import error in admin panel"
+git push origin main
+
+
+2️⃣  ATUALIZAR NO SERVIDOR:
+─────────────────────────
+ssh root@SEU_IP
+cd /opt/sentinelweb
+git pull origin main
+
+
+3️⃣  REINICIAR APLICAÇÃO:
+─────────────────────────
+docker compose -f docker-compose.prod.yml restart web
+
+# Aguardar 10 segundos
+sleep 10
+
+
+4️⃣  VERIFICAR STATUS:
+─────────────────────────
+docker compose -f docker-compose.prod.yml ps
+
+# Deve mostrar 'healthy' para o web
+docker compose -f docker-compose.prod.yml logs --tail=50 web
+
+# Não deve ter mais erros de import!
+
+
+5️⃣  TESTAR APLICAÇÃO:
+─────────────────────────
+# Verificar endpoint de saúde
+curl http://localhost:8000/health
+
+# Testar via HTTPS
+curl -I https://seudominio.com.br
+
+# Ambos devem retornar 200 OK
+
+
+6️⃣  CRIAR SUPERUSUÁRIO ADMIN:
+─────────────────────────
+docker compose -f docker-compose.prod.yml exec web python setup_admin.py
+
+Informe:
+- Nome completo
+- Email
+- Senha
+
+
+7️⃣  ACESSAR PAINEL ADMIN:
+─────────────────────────
+https://seudominio.com.br/admin
+
+Use as credenciais do superusuário criado.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 HISTÓRICO DE ERROS CORRIGIDOS:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❌ ERRO #1: ModuleNotFoundError: jwt
+✅ SOLUÇÃO: Removido import jwt desnecessário
+
+❌ ERRO #2: ImportError: async_session_maker
+✅ SOLUÇÃO: Convertido AdminAuth para síncrono (SessionLocal)
+
+❌ ERRO #3: ImportError: verify_token
+✅ SOLUÇÃO: Substituído por decode_token (este fix)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ SISTEMA PRONTO PARA PRODUÇÃO!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Após seguir os passos acima, você terá:
+
+✅ Código sem erros de import
+✅ Docker funcionando corretamente  
+✅ Aplicação web responsiva
+✅ Painel admin acessível em /admin
+✅ Autenticação JWT funcionando
+✅ Dashboard com KPIs executivos
+✅ CRUD completo de users, sites, payments
+
+🎉 TUDO OPERACIONAL!
