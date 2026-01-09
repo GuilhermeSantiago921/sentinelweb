@@ -28,6 +28,10 @@ echo -e "${YELLOW}[2/5]${NC} Limpando volumes antigos..."
 docker volume prune -f
 
 echo -e "${YELLOW}[3/5]${NC} Puxando código atualizado do GitHub..."
+# Remover arquivos que podem causar conflito
+rm -f fix.sh TROUBLESHOOTING.md
+# Resetar mudanças locais e puxar
+sudo -u sentinelweb git reset --hard HEAD
 sudo -u sentinelweb git pull origin main
 
 echo -e "${YELLOW}[4/5]${NC} Reconstruindo e iniciando containers..."
