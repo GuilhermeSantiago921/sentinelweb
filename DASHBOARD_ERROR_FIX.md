@@ -1,15 +1,21 @@
 # 🐛 Fix: Internal Server Error no Dashboard
 
-## Problema
-Após adicionar um site, ao acessar `/dashboard`, retorna **Internal Server Error (500)**.
+## Problemas Identificados
 
-## Causa Raiz
-O erro ocorre quando:
-1. Usuário não tem `plan_status` definido (campo NULL ou vazio)
-2. Usuário tem `plan_status` inválido (diferente de 'free', 'pro', 'agency')
-3. Erro não tratado ao calcular estatísticas
+### 1. Internal Server Error ao acessar dashboard
+**Causa:** Usuários sem `plan_status` válido causavam erro ao calcular estatísticas.
 
-## Solução Aplicada
+### 2. TypeError: can't subtract offset-naive and offset-aware datetimes
+**Causa:** O template tentava subtrair `datetime.utcnow()` (naive) de `site.domain_expiration_date` (aware).
+
+**Erro completo:**
+```
+TypeError: can't subtract offset-naive and offset-aware datetimes
+File "templates/dashboard.html", line 296
+{% set days_until_expiration = ((site.domain_expiration_date - now()).days) %}
+```
+
+## Soluções Aplicadas
 
 ### 1. Validação de `plan_status`
 ```python
@@ -19,7 +25,22 @@ if not user.plan_status or user.plan_status not in ['free', 'pro', 'agency']:
     db.commit()
 ```
 
-### 2. Try/Catch com Log Detalhado
+### 2. Timezone-aware datetime
+```python
+# ANTES (timezone-naive):
+from datetime import datetime, timedelta
+"now": datetime.utcnow
+
+# DEPOIS (timezone-aware):
+from datetime import datetime, timedelta, timezone
+
+def now():
+    return datetime.now(timezone.utc)
+
+"now": now
+```
+
+### 3. Try/Catch com Log Detalhado
 ```python
 try:
     # ... código do dashboard ...
