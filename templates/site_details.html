@@ -1,0 +1,1407 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhes - {{ site.name }} | SentinelWeb{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-7xl">
+    
+    <!-- Header com Botão Voltar -->
+    <div class="mb-8 flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <a href="/dashboard" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition flex items-center">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Voltar
+            </a>
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">
+                    {{ site.name }}
+                </h1>
+                <p class="text-gray-500 mt-1">
+                    <i class="fas fa-link mr-2"></i>{{ site.domain }}
+                </p>
+            </div>
+        </div>
+        
+        <div class="flex space-x-2">
+            <a href="/sites/{{ site.id }}/edit" 
+               class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition flex items-center">
+                <i class="fas fa-edit mr-2"></i>
+                Editar
+            </a>
+        </div>
+    </div>
+
+    <!-- =============================================== -->
+    <!-- SEÇÃO DE GRÁFICOS - Performance e Disponibilidade -->
+    <!-- =============================================== -->
+    <div class="mb-8 grid grid-cols-1 gap-6">
+        
+        <!-- Card: Gráfico de Latência -->
+        <div class="bg-white shadow-lg rounded-lg p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-gray-800 flex items-center">
+                    <i class="fas fa-chart-area mr-3 text-emerald-500"></i>
+                    Latência - Últimas 24 Horas
+                </h2>
+                <div class="flex items-center space-x-4 text-sm">
+                    <div class="flex items-center">
+                        <span class="w-3 h-3 bg-emerald-500 rounded-full mr-2"></span>
+                        <span class="text-gray-600">Tempo de Resposta</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Gráfico ApexCharts -->
+            <div id="latencyChart" class="w-full" style="min-height: 350px;"></div>
+            
+            <!-- Estatísticas Rápidas -->
+            <div class="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-gray-200">
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-emerald-600" id="avgLatency">-</p>
+                    <p class="text-xs text-gray-500 mt-1">Latência Média</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-blue-600" id="totalChecks">-</p>
+                    <p class="text-xs text-gray-500 mt-1">Verificações</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl font-bold text-indigo-600" id="uptimePercent">-</p>
+                    <p class="text-xs text-gray-500 mt-1">Disponibilidade</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Card: Barras de Uptime por Hora -->
+        <div class="bg-white shadow-lg rounded-lg p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-calendar-day mr-3 text-blue-500"></i>
+                Mapa de Disponibilidade (24 Horas)
+            </h2>
+            
+            <p class="text-sm text-gray-600 mb-4">
+                Cada barra representa uma hora. Verde = 100% online, Amarelo = instável, Vermelho = offline.
+            </p>
+            
+            <!-- Container das Barras -->
+            <div id="uptimeHoursContainer" class="flex flex-wrap gap-1">
+                <!-- Barras serão inseridas via JavaScript -->
+            </div>
+            
+            <!-- Legenda -->
+            <div class="flex items-center justify-center space-x-6 mt-6 text-xs text-gray-600">
+                <div class="flex items-center">
+                    <span class="w-4 h-8 bg-emerald-500 rounded mr-2"></span>
+                    <span>100% Online</span>
+                </div>
+                <div class="flex items-center">
+                    <span class="w-4 h-8 bg-yellow-400 rounded mr-2"></span>
+                    <span>50-99% Online</span>
+                </div>
+                <div class="flex items-center">
+                    <span class="w-4 h-8 bg-red-500 rounded mr-2"></span>
+                    <span>0-49% Online</span>
+                </div>
+                <div class="flex items-center">
+                    <span class="w-4 h-8 bg-gray-200 rounded mr-2"></span>
+                    <span>Sem Dados</span>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+
+    <!-- Grid de Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        
+        <!-- =============================================== -->
+        <!-- CARD 1: Status em Tempo Real -->
+        <!-- =============================================== -->
+        <div class="bg-white shadow-lg rounded-lg p-6 border-t-4 {% if site.current_status == 'online' %}border-emerald-500{% else %}border-red-500{% endif %}">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-heartbeat mr-2 {% if site.current_status == 'online' %}text-emerald-500{% else %}text-red-500{% endif %}"></i>
+                Status em Tempo Real
+            </h2>
+            
+            <div class="space-y-3">
+                <!-- Status Principal -->
+                <div class="text-center py-4 bg-gradient-to-br {% if site.current_status == 'online' %}from-emerald-50 to-green-50{% else %}from-red-50 to-pink-50{% endif %} rounded-lg">
+                    {% if site.current_status == 'online' %}
+                    <i class="fas fa-check-circle text-5xl text-emerald-500 mb-2"></i>
+                    <div class="text-2xl font-bold text-emerald-700">ONLINE</div>
+                    {% elif site.current_status == 'offline' %}
+                    <i class="fas fa-times-circle text-5xl text-red-500 mb-2"></i>
+                    <div class="text-2xl font-bold text-red-700">OFFLINE</div>
+                    {% else %}
+                    <i class="fas fa-circle text-5xl text-gray-400 mb-2"></i>
+                    <div class="text-2xl font-bold text-gray-600">AGUARDANDO</div>
+                    {% endif %}
+                    <div class="text-xs text-gray-600 uppercase tracking-wide mt-1">Status Atual</div>
+                </div>
+                
+                <!-- Métricas -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <span class="text-xs text-gray-600 flex items-center">
+                            <i class="fas fa-tachometer-alt mr-2 text-blue-500"></i>Latência
+                        </span>
+                        <span class="text-sm font-bold
+                            {% if site.last_latency and site.last_latency < 100 %}text-emerald-600
+                            {% elif site.last_latency and site.last_latency < 500 %}text-yellow-600
+                            {% else %}text-red-600{% endif %}">
+                            {{ site.last_latency|latency if site.last_latency else 'N/A' }}
+                        </span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <span class="text-xs text-gray-600 flex items-center">
+                            <i class="fas fa-chart-line mr-2 text-green-500"></i>Disponibilidade
+                        </span>
+                        <span class="text-sm font-bold
+                            {% if uptime_percent >= 99 %}text-emerald-600
+                            {% elif uptime_percent >= 95 %}text-yellow-600
+                            {% else %}text-red-600{% endif %}">
+                            {{ "%.1f"|format(uptime_percent) }}%
+                        </span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <span class="text-xs text-gray-600 flex items-center">
+                            <i class="fas fa-check-double mr-2 text-indigo-500"></i>Verificações
+                        </span>
+                        <span class="text-sm font-bold text-gray-700">
+                            {{ total_checks }}
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Info Footer -->
+                <div class="text-xs text-gray-500 text-center pt-2 border-t">
+                    <i class="fas fa-clock mr-1"></i>
+                    {{ site.last_check|datetime if site.last_check else 'Aguardando verificação' }}
+                </div>
+            </div>
+        </div>
+
+        <!-- =============================================== -->
+        <!-- CARD 2: Performance (Google PageSpeed Insights) -->
+        <!-- =============================================== -->
+        {% if site.performance_score is not none %}
+        <div class="bg-white shadow-lg rounded-lg p-6 border-t-4 border-amber-500">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-bolt mr-2 text-amber-500"></i>
+                Performance
+            </h2>
+            
+            <div class="space-y-3">
+                <!-- Score Principal -->
+                <div class="text-center py-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-lg">
+                    <div class="text-5xl font-bold mb-2
+                        {% if site.performance_score >= 90 %}text-emerald-600
+                        {% elif site.performance_score >= 50 %}text-yellow-600
+                        {% else %}text-red-600{% endif %}">
+                        {{ site.performance_score }}
+                    </div>
+                    <div class="text-xs text-gray-600 uppercase tracking-wide">Performance Score</div>
+                </div>
+                
+                <!-- Scores Detalhados -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <span class="text-xs text-gray-600 flex items-center">
+                            <i class="fas fa-search mr-2 text-blue-500"></i>SEO
+                        </span>
+                        <span class="text-sm font-bold
+                            {% if site.seo_score >= 90 %}text-emerald-600
+                            {% elif site.seo_score >= 50 %}text-yellow-600
+                            {% else %}text-red-600{% endif %}">
+                            {{ site.seo_score if site.seo_score is not none else 'N/A' }}
+                        </span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <span class="text-xs text-gray-600 flex items-center">
+                            <i class="fas fa-universal-access mr-2 text-purple-500"></i>Acessibilidade
+                        </span>
+                        <span class="text-sm font-bold
+                            {% if site.accessibility_score >= 90 %}text-emerald-600
+                            {% elif site.accessibility_score >= 50 %}text-yellow-600
+                            {% else %}text-red-600{% endif %}">
+                            {{ site.accessibility_score if site.accessibility_score is not none else 'N/A' }}
+                        </span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <span class="text-xs text-gray-600 flex items-center">
+                            <i class="fas fa-award mr-2 text-green-500"></i>Boas Práticas
+                        </span>
+                        <span class="text-sm font-bold
+                            {% if site.best_practices_score >= 90 %}text-emerald-600
+                            {% elif site.best_practices_score >= 50 %}text-yellow-600
+                            {% else %}text-red-600{% endif %}">
+                            {{ site.best_practices_score if site.best_practices_score is not none else 'N/A' }}
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Ações -->
+                <div class="mt-3">
+                    <button onclick="triggerPageSpeedCheck({{ site.id }})" 
+                            id="pagespeed-btn-{{ site.id }}"
+                            class="w-full px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm rounded transition flex items-center justify-center">
+                        <i class="fas fa-sync-alt mr-2"></i>Verificar Agora
+                    </button>
+                </div>
+                
+                <!-- Info Footer -->
+                <div class="text-xs text-gray-500 text-center pt-2 border-t">
+                    <i class="fas fa-clock mr-1"></i>
+                    {{ site.last_pagespeed_check|datetime if site.last_pagespeed_check else 'Aguardando auditoria' }}
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <!-- Card para quando ainda não tem dados do PageSpeed -->
+        <div class="bg-white shadow-lg rounded-lg p-6 border-t-4 border-amber-500">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-bolt mr-2 text-amber-500"></i>
+                Performance
+            </h2>
+            
+            <div class="text-center py-8">
+                <i class="fas fa-tachometer-alt text-gray-300 text-5xl mb-3"></i>
+                <div class="text-sm text-gray-600 mb-3">Nenhuma análise ainda</div>
+                <button onclick="triggerPageSpeedCheck({{ site.id }})"
+                        id="pagespeed-btn-{{ site.id }}"
+                        class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded transition">
+                    <i class="fas fa-bolt mr-2"></i>Analisar com Google PageSpeed
+                </button>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- =============================================== -->
+        <!-- CARD 3: Segurança & SSL -->
+        <!-- =============================================== -->
+        <div class="bg-white shadow-lg rounded-lg p-6 border-t-4 border-blue-500">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-shield-alt mr-2 text-blue-500"></i>
+                Segurança & SSL
+            </h2>
+            
+            <div class="space-y-3">
+                <!-- SSL Status -->
+                <div class="text-center py-4 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg">
+                    {% if site.ssl_valid %}
+                    <i class="fas fa-lock text-5xl text-emerald-500 mb-2"></i>
+                    {% else %}
+                    <i class="fas fa-lock-open text-5xl text-red-500 mb-2"></i>
+                    {% endif %}
+                    
+                    {% if site.ssl_days_remaining is not none %}
+                        {% if site.ssl_days_remaining > 30 %}
+                        <div class="text-3xl font-bold text-emerald-600">{{ site.ssl_days_remaining }}</div>
+                        <div class="text-xs text-gray-600 uppercase tracking-wide mt-1">dias até expirar</div>
+                        {% elif site.ssl_days_remaining > 0 %}
+                        <div class="text-3xl font-bold text-amber-600">{{ site.ssl_days_remaining }}</div>
+                        <div class="text-xs text-amber-700 uppercase tracking-wide mt-1">renovar em breve</div>
+                        {% else %}
+                        <div class="text-2xl font-bold text-red-600">EXPIRADO</div>
+                        <div class="text-xs text-red-700 uppercase tracking-wide mt-1">ação urgente</div>
+                        {% endif %}
+                    {% else %}
+                    <div class="text-lg text-gray-400">Não verificado</div>
+                    {% endif %}
+                </div>
+                
+                <!-- Métricas de Segurança -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <span class="text-xs text-gray-600 flex items-center">
+                            <i class="fas fa-certificate mr-2 text-green-500"></i>Protocolo
+                        </span>
+                        <span class="text-sm font-bold {% if site.ssl_valid %}text-emerald-600{% else %}text-red-600{% endif %}">
+                            {% if site.ssl_valid %}HTTPS{% else %}HTTP{% endif %}
+                        </span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <span class="text-xs text-gray-600 flex items-center">
+                            <i class="fas fa-ban mr-2 text-red-500"></i>Blacklist RBL
+                        </span>
+                        {% if site.is_blacklisted %}
+                        <span class="text-sm font-bold text-red-600">
+                            Detectado
+                        </span>
+                        {% else %}
+                        <span class="text-sm font-bold text-emerald-600">
+                            Limpo
+                        </span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <span class="text-xs text-gray-600 flex items-center">
+                            <i class="fas fa-network-wired mr-2 text-blue-500"></i>Portas Abertas
+                        </span>
+                        {% if site.open_ports %}
+                            {% set ports = site.open_ports|from_json %}
+                            <span class="text-sm font-bold text-amber-600">{{ ports|length }}</span>
+                        {% else %}
+                        <span class="text-sm font-bold text-emerald-600">0</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Info Footer -->
+                <div class="text-xs text-gray-500 text-center pt-2 border-t">
+                    {% if site.must_contain_keyword %}
+                    <i class="fas fa-shield-virus mr-1 text-purple-500"></i>
+                    Anti-Defacement ativo
+                    {% else %}
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Monitoramento básico
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- =============================================== -->
+        <!-- CARD 3.5: SEO Health (Indexabilidade) -->
+        <!-- =============================================== -->
+        <div class="bg-white shadow-lg rounded-lg p-6 border-t-4 {% if site.seo_indexable %}border-green-500{% else %}border-red-600{% endif %}">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-search mr-2 {% if site.seo_indexable %}text-green-500{% else %}text-red-600{% endif %}"></i>
+                Saúde de SEO
+            </h2>
+            
+            <div class="space-y-3">
+                <!-- Status Principal -->
+                <div class="text-center py-6 bg-gradient-to-br {% if site.seo_indexable %}from-green-50 to-emerald-50{% else %}from-red-50 to-pink-50{% endif %} rounded-lg">
+                    {% if site.seo_indexable %}
+                    <i class="fas fa-check-circle text-6xl text-green-500 mb-3"></i>
+                    <div class="text-2xl font-bold text-green-700">INDEXÁVEL</div>
+                    <div class="text-sm text-green-600 mt-2">Site visível no Google</div>
+                    {% else %}
+                    <i class="fas fa-skull-crossbones text-6xl text-red-600 mb-3"></i>
+                    <div class="text-2xl font-bold text-red-700">DESINDEXADO</div>
+                    <div class="text-sm text-red-600 mt-2">⚠️ PERIGO: Site bloqueado</div>
+                    {% endif %}
+                </div>
+                
+                <!-- Problemas SEO (se houver) -->
+                {% if site.seo_issues %}
+                {% set issues = site.seo_issues | from_json %}
+                <div class="space-y-2">
+                    <div class="text-xs font-bold text-red-700 uppercase tracking-wide mb-2">
+                        🚨 Problemas Encontrados:
+                    </div>
+                    {% for issue in issues %}
+                    <div class="p-3 bg-red-50 border border-red-200 rounded-lg">
+                        <div class="flex items-start">
+                            <i class="fas fa-exclamation-triangle text-red-600 mt-1 mr-2"></i>
+                            <div class="text-sm text-red-800 flex-1">
+                                {{ issue }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    <!-- Alerta Ação Urgente -->
+                    <div class="mt-4 p-4 bg-red-100 border-2 border-red-600 rounded-lg">
+                        <div class="flex items-center mb-2">
+                            <i class="fas fa-bell text-red-600 text-lg mr-2"></i>
+                            <div class="text-sm font-bold text-red-800">AÇÃO URGENTE NECESSÁRIA</div>
+                        </div>
+                        <div class="text-xs text-red-700">
+                            O site não aparecerá nas buscas do Google até que esses problemas sejam corrigidos.
+                            Verifique configurações de SEO, plugins e robots.txt.
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <!-- Tudo OK -->
+                <div class="space-y-2">
+                    <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div class="flex items-center">
+                            <i class="fas fa-check text-green-600 mr-2"></i>
+                            <div class="text-sm text-green-800">
+                                ✅ Sem meta tag noindex
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div class="flex items-center">
+                            <i class="fas fa-check text-green-600 mr-2"></i>
+                            <div class="text-sm text-green-800">
+                                ✅ Headers HTTP OK
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <div class="flex items-center">
+                            <i class="fas fa-check text-green-600 mr-2"></i>
+                            <div class="text-sm text-green-800">
+                                ✅ Robots.txt permitindo rastreamento
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Info Footer -->
+                <div class="text-xs text-gray-500 text-center pt-2 border-t">
+                    <i class="fas fa-clock mr-1"></i>
+                    {{ site.last_seo_check|datetime if site.last_seo_check else 'Aguardando verificação' }}
+                </div>
+            </div>
+        </div>
+
+        <!-- =============================================== -->
+        <!-- CARD: Tech Stack & Segurança (sites NÃO-WordPress) -->
+        <!-- =============================================== -->
+        {% if not site.is_wordpress %}
+        <div class="bg-white shadow-lg rounded-lg p-6 border-t-4 border-indigo-500">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-layer-group mr-2 text-indigo-500"></i>
+                Tech Stack & Segurança
+            </h2>
+            
+            <!-- Security Headers Grade -->
+            {% if site.security_headers_grade %}
+            <div class="mb-6">
+                <h3 class="font-semibold text-gray-700 mb-2 text-sm">Nota de Segurança (Headers HTTP)</h3>
+                <div class="flex items-center justify-center py-4 bg-gradient-to-br 
+                    {% if site.security_headers_grade == 'A' %}from-green-50 to-emerald-50
+                    {% elif site.security_headers_grade == 'F' %}from-red-50 to-pink-50
+                    {% else %}from-yellow-50 to-orange-50{% endif %} rounded-lg">
+                    
+                    {% if site.security_headers_grade == 'A' %}
+                    <div class="text-center">
+                        <div class="text-6xl font-bold text-green-500">A</div>
+                        <div class="text-sm text-green-600 mt-2">Excelente! Todos os headers críticos presentes</div>
+                    </div>
+                    {% elif site.security_headers_grade == 'F' %}
+                    <div class="text-center">
+                        <div class="text-6xl font-bold text-red-500">F</div>
+                        <div class="text-sm text-red-600 mt-2">CRÍTICO! Faltam headers de segurança importantes</div>
+                    </div>
+                    {% else %}
+                    <div class="text-center">
+                        <div class="text-6xl font-bold text-yellow-500">{{ site.security_headers_grade }}</div>
+                        <div class="text-sm text-yellow-600 mt-2">Alguns headers faltando</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Detected Technologies -->
+            {% if site.tech_stack %}
+            <div class="mb-6">
+                <h3 class="font-semibold text-gray-700 mb-3 text-sm">Tecnologias Detectadas</h3>
+                {% set technologies = site.tech_stack | from_json %}
+                <div class="grid grid-cols-2 gap-2">
+                    {% for tech in technologies[:8] %}
+                    <div class="bg-gray-50 p-3 rounded border border-gray-200 hover:border-indigo-300 transition">
+                        <div class="font-semibold text-gray-800 text-sm truncate">{{ tech.name }}</div>
+                        {% if tech.version %}
+                        <div class="text-xs text-gray-600">v{{ tech.version }}</div>
+                        {% else %}
+                        <div class="text-xs text-yellow-600 italic">Versão não detectada</div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                    {% if technologies|length > 8 %}
+                    <div class="col-span-2 text-center text-xs text-gray-500 py-2">
+                        ... e mais {{ technologies|length - 8 }} tecnologia(s)
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center py-4 bg-gray-50 rounded-lg">
+                <i class="fas fa-search text-3xl text-gray-400 mb-2"></i>
+                <div class="text-sm text-gray-600">Aguardando primeira varredura</div>
+            </div>
+            {% endif %}
+            
+            <!-- Vulnerabilities (CVEs) -->
+            {% if site.general_vulnerabilities %}
+            {% set vulns = site.general_vulnerabilities | from_json %}
+            {% if vulns %}
+            <div class="mb-4">
+                <h3 class="font-semibold text-red-700 mb-2 text-sm flex items-center">
+                    <i class="fas fa-shield-virus mr-2"></i>
+                    Vulnerabilidades Encontradas ({{ vulns|length }})
+                </h3>
+                {% for vuln in vulns[:3] %}
+                <div class="bg-red-50 border-l-4 border-red-500 p-3 mb-2 rounded">
+                    <div class="font-semibold text-red-800 text-sm">{{ vuln.cve_id }}</div>
+                    <div class="text-xs text-red-700">
+                        {{ vuln.technology }} {{ vuln.version }} - 
+                        <span class="font-bold">{{ vuln.severity }}</span>
+                    </div>
+                    <div class="text-xs text-red-600 mt-1">{{ vuln.summary[:80] }}...</div>
+                </div>
+                {% endfor %}
+                {% if vulns|length > 3 %}
+                <div class="text-center text-xs text-red-600 py-2">
+                    ... e mais {{ vulns|length - 3 }} vulnerabilidade(s)
+                </div>
+                {% endif %}
+            </div>
+            {% endif %}
+            {% endif %}
+            
+            <!-- Footer -->
+            <div class="text-xs text-gray-500 text-center pt-2 border-t">
+                <i class="fas fa-clock mr-1"></i>
+                Última varredura: {{ site.last_tech_scan|datetime if site.last_tech_scan else 'Aguardando' }}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- =============================================== -->
+        <!-- CARD 4: WordPress -->
+        <!-- =============================================== -->
+        {% if site.is_wordpress %}
+        <div class="bg-white shadow-lg rounded-lg p-6 border-t-4 border-indigo-500">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fab fa-wordpress mr-2 text-indigo-500"></i>
+                WordPress
+            </h2>
+            
+            <div class="space-y-3">
+                <!-- Versão -->
+                <div class="text-center py-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-lg">
+                    <i class="fab fa-wordpress text-5xl text-indigo-500 mb-2"></i>
+                    <div class="text-3xl font-bold text-indigo-600">
+                        {{ site.wp_version if site.wp_version else 'N/A' }}
+                    </div>
+                    <div class="text-xs text-gray-600 uppercase tracking-wide mt-1">Versão WordPress</div>
+                </div>
+                
+                <!-- Métricas -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <span class="text-xs text-gray-600 flex items-center">
+                            <i class="fas fa-bug mr-2 text-red-500"></i>Vulnerabilidades
+                        </span>
+                        {% if site.vulnerabilities_found %}
+                            {% set vulns = site.vulnerabilities_found|from_json %}
+                            <span class="text-sm font-bold text-red-600">{{ vulns|length }}</span>
+                        {% else %}
+                        <span class="text-sm font-bold text-emerald-600">0</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <span class="text-xs text-gray-600 flex items-center">
+                            <i class="fas fa-puzzle-piece mr-2 text-indigo-500"></i>Plugins
+                        </span>
+                        {% if site.plugins_detected %}
+                            {% set plugins = site.plugins_detected|from_json %}
+                            <span class="text-sm font-bold text-indigo-600">{{ plugins|length }}</span>
+                        {% else %}
+                        <span class="text-sm font-bold text-gray-400">0</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <span class="text-xs text-gray-600 flex items-center">
+                            <i class="fas fa-shield-alt mr-2 {% if site.vulnerabilities_found %}text-red-500{% else %}text-emerald-500{% endif %}"></i>Segurança
+                        </span>
+                        {% if site.vulnerabilities_found %}
+                        <span class="text-sm font-bold text-red-600">
+                            Atenção
+                        </span>
+                        {% else %}
+                        <span class="text-sm font-bold text-emerald-600">
+                            Seguro
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Info Footer -->
+                <div class="text-xs text-gray-500 text-center pt-2 border-t">
+                    <i class="fas fa-search mr-1"></i>
+                    Scanner WPScan ativo
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- =============================================== -->
+        <!-- CARD 5: Domínio (Whois) -->
+        <!-- =============================================== -->
+        <div class="bg-white shadow-lg rounded-lg p-6 border-t-4 border-purple-500">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-globe mr-2 text-purple-500"></i>
+                Domínio
+            </h2>
+            
+            <div class="space-y-3">
+                {% if site.domain_expiration_date %}
+                <!-- Dias até Expiração -->
+                <div class="text-center py-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg">
+                    <i class="fas fa-calendar-alt text-5xl {% if domain_days_remaining and domain_days_remaining < 30 %}text-red-500{% elif domain_days_remaining and domain_days_remaining < 60 %}text-amber-500{% else %}text-emerald-500{% endif %} mb-2"></i>
+                    
+                    {% if domain_days_remaining is not none %}
+                        {% if domain_days_remaining > 60 %}
+                        <div class="text-3xl font-bold text-emerald-600">{{ domain_days_remaining }}</div>
+                        <div class="text-xs text-gray-600 uppercase tracking-wide mt-1">dias até expirar</div>
+                        {% elif domain_days_remaining > 30 %}
+                        <div class="text-3xl font-bold text-amber-600">{{ domain_days_remaining }}</div>
+                        <div class="text-xs text-amber-700 uppercase tracking-wide mt-1">planejar renovação</div>
+                        {% elif domain_days_remaining > 0 %}
+                        <div class="text-3xl font-bold text-red-600">{{ domain_days_remaining }}</div>
+                        <div class="text-xs text-red-700 uppercase tracking-wide mt-1">urgente</div>
+                        {% else %}
+                        <div class="text-2xl font-bold text-red-700">EXPIRADO</div>
+                        <div class="text-xs text-red-700 uppercase tracking-wide mt-1">renovar agora</div>
+                        {% endif %}
+                    {% else %}
+                    <div class="text-lg text-gray-400">N/A</div>
+                    {% endif %}
+                </div>
+                
+                <!-- Detalhes -->
+                <div class="space-y-2">
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <span class="text-xs text-gray-600 flex items-center">
+                            <i class="fas fa-calendar-check mr-2 text-purple-500"></i>Expira em
+                        </span>
+                        <span class="text-xs font-bold text-gray-700">
+                            {{ site.domain_expiration_date.strftime('%d/%m/%Y') }}
+                        </span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <span class="text-xs text-gray-600 flex items-center">
+                            <i class="fas fa-link mr-2 text-blue-500"></i>Domínio
+                        </span>
+                        <span class="text-xs font-bold text-gray-700">
+                            {{ site.domain }}
+                        </span>
+                    </div>
+                </div>
+                
+                <!-- Info Footer -->
+                <div class="text-xs text-gray-500 text-center pt-2 border-t">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    Dados Whois
+                </div>
+                {% else %}
+                <!-- Whois não disponível -->
+                <div class="text-center py-4">
+                    <i class="fas fa-info-circle text-gray-400 text-4xl mb-3"></i>
+                    <div class="text-sm text-gray-600 mb-2">Whois não disponível</div>
+                    <div class="text-xs text-gray-500">Aguardando próxima verificação</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- =============================================== -->
+        <!-- CARD 6: Visual Snapshot (Regression Testing) -->
+        <!-- =============================================== -->
+        <div class="bg-white shadow-lg rounded-lg p-6 border-t-4 {% if site.visual_alert_triggered %}border-red-500{% else %}border-teal-500{% endif %}">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-camera mr-2 text-teal-500"></i>
+                Visual Snapshot
+            </h2>
+            
+            <div class="space-y-3">
+                {% if site.last_screenshot_path %}
+                <!-- Screenshot Preview -->
+                <div class="relative bg-gray-100 rounded-lg overflow-hidden border-2 border-gray-200">
+                    <img src="/{{ site.last_screenshot_path }}" 
+                         alt="Screenshot de {{ site.domain }}"
+                         class="w-full h-48 object-cover object-top cursor-pointer hover:opacity-90 transition"
+                         onclick="window.open('/{{ site.last_screenshot_path }}', '_blank')">
+                    <div class="absolute top-2 right-2 bg-black bg-opacity-50 text-white text-xs px-2 py-1 rounded">
+                        <i class="fas fa-expand-alt mr-1"></i>Clique para ampliar
+                    </div>
+                </div>
+                
+                <!-- Status Visual -->
+                <div class="text-center py-3 bg-gradient-to-br {% if site.visual_alert_triggered %}from-red-50 to-pink-50{% else %}from-teal-50 to-cyan-50{% endif %} rounded-lg">
+                    {% if site.visual_diff_percent is not none %}
+                        {% if site.visual_alert_triggered %}
+                        <i class="fas fa-exclamation-triangle text-4xl text-red-500 mb-2"></i>
+                        <div class="text-2xl font-bold text-red-600">{{ "%.1f"|format(site.visual_diff_percent) }}%</div>
+                        <div class="text-xs text-red-700 uppercase tracking-wide mt-1">mudança detectada</div>
+                        {% else %}
+                        <i class="fas fa-check-circle text-4xl text-emerald-500 mb-2"></i>
+                        <div class="text-2xl font-bold text-emerald-600">{{ "%.1f"|format(site.visual_diff_percent) }}%</div>
+                        <div class="text-xs text-gray-600 uppercase tracking-wide mt-1">diferença visual</div>
+                        {% endif %}
+                    {% else %}
+                    <i class="fas fa-hourglass-half text-4xl text-gray-400 mb-2"></i>
+                    <div class="text-sm text-gray-500">Aguardando verificação</div>
+                    {% endif %}
+                </div>
+                
+                <!-- Ações -->
+                <div class="space-y-2">
+                    <button onclick="triggerVisualCheck({{ site.id }})"
+                            id="visual-btn-{{ site.id }}"
+                            class="w-full px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white text-sm rounded transition flex items-center justify-center">
+                        <i class="fas fa-sync-alt mr-2"></i>Verificar Agora
+                    </button>
+                    
+                    {% if site.last_screenshot_path and site.visual_diff_percent and site.visual_diff_percent > 0 %}
+                    <button onclick="updateBaseline({{ site.id }})"
+                            id="baseline-btn-{{ site.id }}"
+                            class="w-full px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm rounded transition flex items-center justify-center">
+                        <i class="fas fa-check mr-2"></i>Definir como Padrão
+                    </button>
+                    {% endif %}
+                </div>
+                
+                <!-- Info Footer -->
+                <div class="text-xs text-gray-500 text-center pt-2 border-t">
+                    <i class="fas fa-clock mr-1"></i>
+                    {{ site.last_visual_check|datetime if site.last_visual_check else 'Nenhuma verificação visual ainda' }}
+                </div>
+                {% else %}
+                <!-- Primeira verificação -->
+                <div class="text-center py-8">
+                    <i class="fas fa-camera text-gray-300 text-5xl mb-3"></i>
+                    <div class="text-sm text-gray-600 mb-3">Nenhum snapshot ainda</div>
+                    <button onclick="triggerVisualCheck({{ site.id }})"
+                            id="visual-btn-{{ site.id }}"
+                            class="px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded transition">
+                        <i class="fas fa-camera mr-2"></i>Capturar Primeiro Snapshot
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- =============================================== -->
+        <!-- CARD 7: Plugins & Vulnerabilidades CVE -->
+        <!-- =============================================== -->
+        {% if site.is_wordpress and site.plugins_detected %}
+        {% set plugins = site.plugins_detected | from_json %}
+        <div class="bg-white shadow-lg rounded-lg p-6 border-t-4 border-purple-500">
+            <h2 class="text-lg font-bold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-plug mr-2 text-purple-500"></i>
+                Plugins & Vulnerabilidades CVE
+            </h2>
+            
+            <!-- Cabeçalho com Estatísticas -->
+            <div class="mb-6 bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg p-4 border border-purple-200">
+                {% set total_plugins = plugins | length %}
+                {% set plugins_with_cves = plugins | selectattr('vulnerabilities', 'defined') | selectattr('vulnerabilities') | list | length %}
+                {% set total_cves = plugins | sum(attribute='vulnerabilities', start=[]) | length %}
+                
+                <div class="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                        <div class="text-3xl font-bold text-purple-600">
+                            <i class="fas fa-puzzle-piece"></i> {{ total_plugins }}
+                        </div>
+                        <div class="text-xs text-gray-600 mt-1">Plugins Detectados</div>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-bold {% if plugins_with_cves > 0 %}text-red-600{% else %}text-green-600{% endif %}">
+                            <i class="{% if plugins_with_cves > 0 %}fas fa-exclamation-triangle{% else %}fas fa-shield-alt{% endif %}"></i> {{ plugins_with_cves }}
+                        </div>
+                        <div class="text-xs text-gray-600 mt-1">Com Vulnerabilidades</div>
+                    </div>
+                    <div>
+                        <div class="text-3xl font-bold {% if total_cves > 0 %}text-red-600{% else %}text-green-600{% endif %}">
+                            <i class="fas fa-bug"></i> {{ total_cves }}
+                        </div>
+                        <div class="text-xs text-gray-600 mt-1">CVEs Encontrados</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Lista de Plugins -->
+            <div class="space-y-3">
+                {% for plugin in plugins %}
+                <div class="border rounded-lg p-4 {% if plugin.vulnerabilities %}bg-red-50 border-red-300{% else %}bg-green-50 border-green-300{% endif %}">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <!-- Nome e Versão do Plugin -->
+                            <div class="flex items-center space-x-3 mb-2">
+                                <i class="fas fa-puzzle-piece text-2xl {% if plugin.vulnerabilities %}text-red-500{% else %}text-green-500{% endif %}"></i>
+                                <div>
+                                    <h3 class="font-bold text-gray-800">{{ plugin.slug }}</h3>
+                                    <p class="text-sm text-gray-600">Versão: {{ plugin.version }}</p>
+                                </div>
+                            </div>
+                            
+                            <!-- Vulnerabilidades -->
+                            {% if plugin.vulnerabilities %}
+                            <div class="mt-3 space-y-2">
+                                <div class="flex items-center space-x-2 mb-2">
+                                    <i class="fas fa-exclamation-triangle text-red-600"></i>
+                                    <span class="font-semibold text-red-700">
+                                        {{ plugin.vulnerabilities | length }} Vulnerabilidade(s) CVE Encontrada(s)
+                                    </span>
+                                </div>
+                                
+                                {% for cve in plugin.vulnerabilities %}
+                                <div class="ml-6 p-3 bg-white rounded border-l-4 
+                                    {% if cve.severity == 'critical' %}border-red-600
+                                    {% elif cve.severity == 'high' %}border-orange-500
+                                    {% elif cve.severity == 'medium' %}border-yellow-500
+                                    {% else %}border-gray-400{% endif %}">
+                                    
+                                    <div class="flex items-start justify-between">
+                                        <div class="flex-1">
+                                            <!-- ID da CVE -->
+                                            <div class="flex items-center space-x-2 mb-1">
+                                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-bold
+                                                    {% if cve.severity == 'critical' %}bg-red-600 text-white
+                                                    {% elif cve.severity == 'high' %}bg-orange-500 text-white
+                                                    {% elif cve.severity == 'medium' %}bg-yellow-500 text-white
+                                                    {% else %}bg-gray-400 text-white{% endif %}">
+                                                    {{ cve.severity | upper }}
+                                                </span>
+                                                <span class="font-mono text-sm font-bold text-gray-800">{{ cve.id }}</span>
+                                            </div>
+                                            
+                                            <!-- Descrição -->
+                                            <p class="text-sm text-gray-700 mt-2">{{ cve.summary }}</p>
+                                            
+                                            <!-- Referências -->
+                                            {% if cve.references %}
+                                            <div class="mt-2">
+                                                <p class="text-xs text-gray-600 mb-1">Referências:</p>
+                                                <div class="space-y-1">
+                                                    {% for ref in cve.references[:2] %}
+                                                    <a href="{{ ref }}" target="_blank" 
+                                                       class="text-xs text-blue-600 hover:text-blue-800 hover:underline block truncate">
+                                                        <i class="fas fa-external-link-alt mr-1"></i>{{ ref | truncate(60) }}
+                                                    </a>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% else %}
+                            <!-- Plugin Seguro -->
+                            <div class="mt-2 flex items-center space-x-2 text-green-700">
+                                <i class="fas fa-check-circle"></i>
+                                <span class="text-sm font-medium">Nenhuma vulnerabilidade conhecida (CVE)</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Rodapé -->
+            <div class="mt-6 pt-4 border-t border-gray-200">
+                <div class="flex items-center justify-between text-xs text-gray-500">
+                    <div class="flex items-center space-x-4">
+                        <span>
+                            <i class="fas fa-database mr-1"></i>
+                            Fonte: OSV.dev (Open Source Vulnerabilities)
+                        </span>
+                    </div>
+                    <div>
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Dados atualizados a cada scan
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+    </div>
+    <!-- Info Resumida -->
+    <div class="mt-8 bg-white rounded-lg p-4 shadow-md">
+        <div class="flex items-center justify-between text-sm text-gray-600">
+            <div class="flex items-center space-x-6">
+                <span>
+                    <i class="fas fa-calendar-plus mr-1 text-gray-400"></i>
+                    Cadastrado: {{ site.created_at.strftime('%d/%m/%Y') }}
+                </span>
+                <span>
+                    <i class="fas fa-check-double mr-1 text-gray-400"></i>
+                    {{ total_checks }} verificações
+                </span>
+                <span>
+                    <i class="fas fa-sync-alt mr-1 text-gray-400"></i>
+                    A cada {{ site.check_interval }} min
+                </span>
+            </div>
+            <div class="text-gray-400 font-mono text-xs">
+                ID: #{{ site.id }}
+            </div>
+        </div>
+    </div>
+    
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Função para disparar verificação do PageSpeed com loading
+    async function triggerPageSpeedCheck(siteId) {
+        const btn = document.getElementById(`pagespeed-btn-${siteId}`);
+        if (!btn) return;
+        
+        // Desabilita botão e mostra loading
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Analisando... (pode levar até 90s)';
+        btn.classList.add('opacity-75', 'cursor-not-allowed');
+        
+        try {
+            const response = await fetch(`/api/sites/${siteId}/pagespeed-check`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                const data = await response.json();
+                
+                // Mostra mensagem de sucesso
+                btn.innerHTML = '<i class="fas fa-check mr-2"></i>Verificação agendada!';
+                btn.classList.remove('bg-amber-600', 'hover:bg-amber-700');
+                btn.classList.add('bg-green-600');
+                
+                // Aguarda 60 segundos e recarrega a página
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-sync-alt fa-spin mr-2"></i>Aguardando resultados...';
+                }, 2000);
+                
+                setTimeout(() => {
+                    location.reload();
+                }, 60000); // 60 segundos
+                
+            } else {
+                throw new Error('Erro ao agendar verificação');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            btn.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>Erro. Tente novamente';
+            btn.classList.remove('bg-amber-600', 'hover:bg-amber-700');
+            btn.classList.add('bg-red-600');
+            btn.disabled = false;
+            
+            // Restaura botão após 3 segundos
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fas fa-sync-alt mr-2"></i>Verificar Agora';
+                btn.classList.remove('bg-red-600', 'opacity-75', 'cursor-not-allowed');
+                btn.classList.add('bg-amber-600', 'hover:bg-amber-700');
+            }, 3000);
+        }
+    }
+    
+    // Função para disparar verificação visual com loading
+    async function triggerVisualCheck(siteId) {
+        const btn = document.getElementById(`visual-btn-${siteId}`);
+        if (!btn) return;
+        
+        // Desabilita botão e mostra loading
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Capturando screenshot...';
+        btn.classList.add('opacity-75', 'cursor-not-allowed');
+        
+        try {
+            const response = await fetch(`/api/sites/${siteId}/visual-check`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                // Mostra mensagem de sucesso
+                btn.innerHTML = '<i class="fas fa-check mr-2"></i>Verificação agendada!';
+                btn.classList.remove('bg-teal-600', 'hover:bg-teal-700');
+                btn.classList.add('bg-green-600');
+                
+                // Aguarda 20 segundos e recarrega
+                setTimeout(() => {
+                    btn.innerHTML = '<i class="fas fa-sync-alt fa-spin mr-2"></i>Aguardando resultados...';
+                }, 2000);
+                
+                setTimeout(() => {
+                    location.reload();
+                }, 20000); // 20 segundos
+                
+            } else {
+                throw new Error('Erro ao agendar verificação');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            btn.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>Erro. Tente novamente';
+            btn.classList.remove('bg-teal-600', 'hover:bg-teal-700');
+            btn.classList.add('bg-red-600');
+            btn.disabled = false;
+            
+            // Restaura botão após 3 segundos
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fas fa-sync-alt mr-2"></i>Verificar Agora';
+                btn.classList.remove('bg-red-600', 'opacity-75', 'cursor-not-allowed');
+                btn.classList.add('bg-teal-600', 'hover:bg-teal-700');
+            }, 3000);
+        }
+    }
+    
+    // Função para atualizar baseline
+    async function updateBaseline(siteId) {
+        if (!confirm('Deseja definir esta versão como novo padrão?')) {
+            return;
+        }
+        
+        const btn = document.getElementById(`baseline-btn-${siteId}`);
+        if (!btn) return;
+        
+        // Desabilita botão e mostra loading
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Atualizando...';
+        btn.classList.add('opacity-75', 'cursor-not-allowed');
+        
+        try {
+            const response = await fetch(`/api/sites/${siteId}/update-baseline`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (response.ok) {
+                btn.innerHTML = '<i class="fas fa-check mr-2"></i>Baseline atualizado!';
+                btn.classList.add('bg-green-600');
+                
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+                
+            } else {
+                throw new Error('Erro ao atualizar baseline');
+            }
+        } catch (error) {
+            console.error('Erro:', error);
+            btn.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i>Erro';
+            btn.classList.add('bg-red-600');
+            
+            setTimeout(() => {
+                btn.innerHTML = '<i class="fas fa-check mr-2"></i>Definir como Padrão';
+                btn.classList.remove('bg-red-600', 'opacity-75', 'cursor-not-allowed');
+                btn.disabled = false;
+            }, 3000);
+        }
+    }
+    
+    // Auto-refresh a cada 60 segundos
+    setTimeout(function() {
+        location.reload();
+    }, 60000);
+</script>
+
+<!-- ApexCharts CDN -->
+<script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+<!-- Script de Gráficos de Performance -->
+<script>
+    // =============================================================
+    // GRÁFICO DE LATÊNCIA (ApexCharts)
+    // =============================================================
+    
+    async function loadPerformanceCharts() {
+        try {
+            // Busca dados da API (com credentials para incluir cookies)
+            const response = await fetch('/api/sites/{{ site.id }}/history', {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Erro da API:', response.status, errorText);
+                throw new Error(`Erro ${response.status}: ${errorText}`);
+            }
+            
+            const data = await response.json();
+            
+            // Atualiza estatísticas rápidas
+            document.getElementById('avgLatency').textContent = data.avg_latency + ' ms';
+            document.getElementById('totalChecks').textContent = data.total_checks;
+            document.getElementById('uptimePercent').textContent = data.uptime_percent + '%';
+            
+            // =======================================================
+            // Renderiza Gráfico de Latência (Area Chart)
+            // =======================================================
+            
+            const latencyChartOptions = {
+                series: [{
+                    name: 'Latência',
+                    data: data.latency
+                }],
+                chart: {
+                    type: 'area',
+                    height: 350,
+                    toolbar: {
+                        show: true,
+                        tools: {
+                            download: true,
+                            selection: false,
+                            zoom: true,
+                            zoomin: true,
+                            zoomout: true,
+                            pan: false,
+                            reset: true
+                        }
+                    },
+                    animations: {
+                        enabled: true,
+                        easing: 'easeinout',
+                        speed: 800
+                    }
+                },
+                dataLabels: {
+                    enabled: false
+                },
+                stroke: {
+                    curve: 'smooth',
+                    width: 3,
+                    colors: ['#10b981'] // Emerald green
+                },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shadeIntensity: 1,
+                        opacityFrom: 0.7,
+                        opacityTo: 0.2,
+                        stops: [0, 90, 100],
+                        colorStops: [
+                            {
+                                offset: 0,
+                                color: '#10b981',
+                                opacity: 0.7
+                            },
+                            {
+                                offset: 100,
+                                color: '#10b981',
+                                opacity: 0.1
+                            }
+                        ]
+                    }
+                },
+                xaxis: {
+                    categories: data.categories,
+                    labels: {
+                        rotate: -45,
+                        rotateAlways: false,
+                        hideOverlappingLabels: true,
+                        showDuplicates: false,
+                        trim: false,
+                        minHeight: undefined,
+                        maxHeight: 120,
+                        style: {
+                            colors: '#6b7280',
+                            fontSize: '11px'
+                        }
+                    },
+                    axisBorder: {
+                        show: true,
+                        color: '#e5e7eb'
+                    },
+                    axisTicks: {
+                        show: true
+                    },
+                    tooltip: {
+                        enabled: false
+                    }
+                },
+                yaxis: {
+                    title: {
+                        text: 'Latência (ms)',
+                        style: {
+                            color: '#6b7280',
+                            fontSize: '12px',
+                            fontWeight: 600
+                        }
+                    },
+                    labels: {
+                        formatter: function(value) {
+                            return value ? Math.round(value) + ' ms' : '0 ms';
+                        },
+                        style: {
+                            colors: '#6b7280',
+                            fontSize: '11px'
+                        }
+                    }
+                },
+                tooltip: {
+                    shared: true,
+                    intersect: false,
+                    theme: 'light',
+                    style: {
+                        fontSize: '12px'
+                    },
+                    y: {
+                        formatter: function(value, { series, seriesIndex, dataPointIndex, w }) {
+                            if (value === null || value === undefined) {
+                                return '<span class="text-red-600 font-semibold">Offline</span>';
+                            }
+                            return Math.round(value) + ' ms';
+                        },
+                        title: {
+                            formatter: function (seriesName) {
+                                return seriesName + ':';
+                            }
+                        }
+                    },
+                    x: {
+                        formatter: function(value, { series, seriesIndex, dataPointIndex, w }) {
+                            return 'Horário: ' + value;
+                        }
+                    }
+                },
+                grid: {
+                    borderColor: '#f3f4f6',
+                    strokeDashArray: 3,
+                    xaxis: {
+                        lines: {
+                            show: false
+                        }
+                    },
+                    yaxis: {
+                        lines: {
+                            show: true
+                        }
+                    }
+                },
+                markers: {
+                    size: 0,
+                    hover: {
+                        size: 5,
+                        sizeOffset: 3
+                    }
+                },
+                // Annotations para pontos offline
+                annotations: {
+                    points: data.latency.map((latency, index) => {
+                        if (latency === null) {
+                            return {
+                                x: data.categories[index],
+                                y: 0,
+                                marker: {
+                                    size: 6,
+                                    fillColor: '#ef4444',
+                                    strokeColor: '#dc2626',
+                                    strokeWidth: 2,
+                                    radius: 2
+                                },
+                                label: {
+                                    text: 'Offline',
+                                    style: {
+                                        color: '#fff',
+                                        background: '#ef4444',
+                                        fontSize: '10px',
+                                        padding: {
+                                            left: 5,
+                                            right: 5,
+                                            top: 2,
+                                            bottom: 2
+                                        }
+                                    }
+                                }
+                            };
+                        }
+                        return null;
+                    }).filter(annotation => annotation !== null)
+                }
+            };
+            
+            const latencyChart = new ApexCharts(
+                document.querySelector("#latencyChart"),
+                latencyChartOptions
+            );
+            
+            latencyChart.render();
+            
+            // =======================================================
+            // Renderiza Barras de Uptime por Hora
+            // =======================================================
+            
+            const uptimeContainer = document.getElementById('uptimeHoursContainer');
+            uptimeContainer.innerHTML = ''; // Limpa conteúdo anterior
+            
+            data.uptime_hours.forEach((hourData, index) => {
+                const bar = document.createElement('div');
+                bar.className = 'relative group';
+                bar.style.flex = '1';
+                bar.style.minWidth = '16px';
+                bar.style.maxWidth = '40px';
+                
+                // Determina cor baseado no uptime
+                let barColor = 'bg-gray-200'; // Sem dados
+                
+                if (hourData.uptime !== null) {
+                    if (hourData.uptime === 100) {
+                        barColor = 'bg-emerald-500';
+                    } else if (hourData.uptime >= 50) {
+                        barColor = 'bg-yellow-400';
+                    } else {
+                        barColor = 'bg-red-500';
+                    }
+                }
+                
+                bar.innerHTML = `
+                    <div class="${barColor} h-12 rounded transition-all duration-200 hover:h-16 hover:opacity-90 cursor-pointer"
+                         title="${hourData.hour}&#10;Uptime: ${hourData.uptime !== null ? hourData.uptime + '%' : 'Sem dados'}&#10;Verificações: ${hourData.checks}">
+                    </div>
+                    
+                    <!-- Tooltip customizado (aparece no hover) -->
+                    <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                        <div class="font-semibold">${hourData.hour}</div>
+                        <div>Uptime: ${hourData.uptime !== null ? hourData.uptime + '%' : 'Sem dados'}</div>
+                        <div>Verificações: ${hourData.checks}</div>
+                        <!-- Seta do tooltip -->
+                        <div class="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                            <div class="border-4 border-transparent border-t-gray-900"></div>
+                        </div>
+                    </div>
+                `;
+                
+                uptimeContainer.appendChild(bar);
+            });
+            
+        } catch (error) {
+            console.error('Erro ao carregar gráficos:', error);
+            
+            // Mostra mensagem de erro no card do gráfico
+            document.getElementById('latencyChart').innerHTML = `
+                <div class="flex items-center justify-center h-64 text-gray-400">
+                    <div class="text-center">
+                        <i class="fas fa-exclamation-triangle text-4xl mb-3"></i>
+                        <p class="font-semibold">Erro ao carregar dados do gráfico</p>
+                        <p class="text-sm mt-2 text-red-500">${error.message}</p>
+                        <button onclick="loadPerformanceCharts()" 
+                                class="mt-4 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded">
+                            <i class="fas fa-sync mr-2"></i>Tentar novamente
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    // Carrega gráficos quando a página estiver pronta
+    document.addEventListener('DOMContentLoaded', loadPerformanceCharts);
+</script>
+
+{% endblock %}

@@ -1,0 +1,244 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Configurações - Admin | SentinelWeb{% endblock %}
+
+{% block admin_content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">⚙️ Configurações do Sistema</h1>
+    <p class="text-gray-600 mt-2">Configure as integrações e parâmetros globais</p>
+</div>
+
+<!-- Success Alert -->
+{% if request.query_params.get('success') %}
+<div class="mb-6 bg-green-50 border-l-4 border-green-500 p-4 rounded">
+    <div class="flex">
+        <i class="fas fa-check-circle text-green-500 text-xl mr-3"></i>
+        <div>
+            <h3 class="text-green-800 font-semibold">Configurações salvas com sucesso!</h3>
+            <p class="text-green-700 text-sm mt-1">As alterações foram aplicadas ao sistema.</p>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    
+    <!-- CARD: Asaas API Configuration -->
+    <div class="bg-white shadow-lg rounded-lg p-6 border-t-4 border-indigo-500">
+        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-plug mr-2 text-indigo-500"></i>
+            Integração Asaas (Gateway de Pagamento)
+        </h2>
+        
+        <form method="POST" action="/admin/config/update" class="space-y-4">
+            <!-- API Token -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-key mr-1"></i>
+                    Token da API
+                </label>
+                <input 
+                    type="password" 
+                    name="asaas_api_token"
+                    value="{{ config.asaas_api_token or '' }}"
+                    placeholder="$aact_YTU5YTE0M2M2N2I4MTliNzk0..."
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+                <p class="text-xs text-gray-500 mt-1">
+                    Obtenha em: <a href="https://www.asaas.com/api/v3" target="_blank" class="text-indigo-600 hover:underline">Asaas Dashboard → API Keys</a>
+                </p>
+            </div>
+            
+            <!-- Webhook Secret -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-shield-alt mr-1"></i>
+                    Webhook Secret
+                </label>
+                <input 
+                    type="text" 
+                    name="asaas_webhook_secret"
+                    value="{{ config.asaas_webhook_secret or '' }}"
+                    placeholder="seu-webhook-secret-aqui"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                />
+                <p class="text-xs text-gray-500 mt-1">
+                    Configure webhooks em: <a href="https://www.asaas.com/webhooks" target="_blank" class="text-indigo-600 hover:underline">Asaas Dashboard → Webhooks</a>
+                </p>
+            </div>
+            
+            <!-- Sandbox Mode -->
+            <div class="flex items-center">
+                <input 
+                    type="checkbox" 
+                    name="is_sandbox" 
+                    id="is_sandbox"
+                    {% if config.is_sandbox %}checked{% endif %}
+                    class="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                />
+                <label for="is_sandbox" class="ml-3">
+                    <span class="text-sm font-medium text-gray-700">Modo Sandbox (Testes)</span>
+                    <p class="text-xs text-gray-500">Ative para usar o ambiente de testes do Asaas</p>
+                </label>
+            </div>
+            
+            <!-- Status Badge -->
+            <div class="p-4 {% if config.is_configured %}bg-green-50 border-green-200{% else %}bg-yellow-50 border-yellow-200{% endif %} border rounded-lg">
+                <div class="flex items-center">
+                    {% if config.is_configured %}
+                    <i class="fas fa-check-circle text-green-600 text-2xl mr-3"></i>
+                    <div>
+                        <div class="font-semibold text-green-800">✅ Asaas Configurado</div>
+                        <div class="text-sm text-green-700">
+                            Ambiente: 
+                            <span class="font-mono">{{ 'Sandbox (Testes)' if config.is_sandbox else 'Produção' }}</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <i class="fas fa-exclamation-triangle text-yellow-600 text-2xl mr-3"></i>
+                    <div>
+                        <div class="font-semibold text-yellow-800">⚠️ Asaas Não Configurado</div>
+                        <div class="text-sm text-yellow-700">Configure o token da API para ativar pagamentos</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <button 
+                type="submit"
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg transition flex items-center justify-center"
+            >
+                <i class="fas fa-save mr-2"></i>
+                Salvar Configurações de API
+            </button>
+        </form>
+    </div>
+    
+    <!-- CARD: Pricing Configuration -->
+    <div class="bg-white shadow-lg rounded-lg p-6 border-t-4 border-emerald-500">
+        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-dollar-sign mr-2 text-emerald-500"></i>
+            Preços dos Planos
+        </h2>
+        
+        <form method="POST" action="/admin/config/update" class="space-y-4">
+            <!-- Free Plan -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-gift mr-1"></i>
+                    Plano Free
+                </label>
+                <div class="flex items-center">
+                    <span class="text-gray-600 mr-2">R$</span>
+                    <input 
+                        type="number" 
+                        name="plan_free_price"
+                        value="{{ config.plan_free_price }}"
+                        step="0.01"
+                        min="0"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Normalmente R$ 0,00 (gratuito)</p>
+            </div>
+            
+            <!-- Pro Plan -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-star mr-1"></i>
+                    Plano Pro
+                </label>
+                <div class="flex items-center">
+                    <span class="text-gray-600 mr-2">R$</span>
+                    <input 
+                        type="number" 
+                        name="plan_pro_price"
+                        value="{{ config.plan_pro_price }}"
+                        step="0.01"
+                        min="0"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Padrão: R$ 49,00/mês</p>
+            </div>
+            
+            <!-- Agency Plan -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <i class="fas fa-building mr-1"></i>
+                    Plano Agency
+                </label>
+                <div class="flex items-center">
+                    <span class="text-gray-600 mr-2">R$</span>
+                    <input 
+                        type="number" 
+                        name="plan_agency_price"
+                        value="{{ config.plan_agency_price }}"
+                        step="0.01"
+                        min="0"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                    />
+                </div>
+                <p class="text-xs text-gray-500 mt-1">Padrão: R$ 149,00/mês</p>
+            </div>
+            
+            <!-- Preview Card -->
+            <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <div class="text-sm font-semibold text-emerald-800 mb-2">💰 Preview de Receita Mensal (100% conversão)</div>
+                <div class="grid grid-cols-3 gap-2 text-xs text-emerald-700">
+                    <div>
+                        <div class="font-semibold">10 Pro</div>
+                        <div>R$ {{ "%.2f"|format(config.plan_pro_price * 10) }}</div>
+                    </div>
+                    <div>
+                        <div class="font-semibold">5 Agency</div>
+                        <div>R$ {{ "%.2f"|format(config.plan_agency_price * 5) }}</div>
+                    </div>
+                    <div>
+                        <div class="font-semibold">Total</div>
+                        <div class="font-bold">R$ {{ "%.2f"|format((config.plan_pro_price * 10) + (config.plan_agency_price * 5)) }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <button 
+                type="submit"
+                class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-lg transition flex items-center justify-center"
+            >
+                <i class="fas fa-save mr-2"></i>
+                Salvar Preços dos Planos
+            </button>
+        </form>
+    </div>
+    
+</div>
+
+<!-- API Documentation -->
+<div class="mt-6 bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+    <h3 class="text-blue-800 font-semibold mb-2">
+        <i class="fas fa-book mr-2"></i>
+        Documentação da API Asaas
+    </h3>
+    <p class="text-blue-700 text-sm mb-2">
+        Para configurar corretamente, consulte a documentação oficial:
+    </p>
+    <ul class="text-blue-700 text-sm space-y-1">
+        <li>
+            <a href="https://docs.asaas.com/" target="_blank" class="hover:underline">
+                📚 Documentação Completa
+            </a>
+        </li>
+        <li>
+            <a href="https://docs.asaas.com/reference/autenticacao" target="_blank" class="hover:underline">
+                🔑 Autenticação (API Keys)
+            </a>
+        </li>
+        <li>
+            <a href="https://docs.asaas.com/reference/webhooks" target="_blank" class="hover:underline">
+                🔔 Webhooks (Notificações Automáticas)
+            </a>
+        </li>
+    </ul>
+</div>
+
+{% endblock %}

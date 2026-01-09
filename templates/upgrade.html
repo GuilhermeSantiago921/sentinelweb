@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}Fazer Upgrade - SentinelWeb{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    
+    <div class="text-center mb-12">
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">
+            🚀 Faça Upgrade do Seu Plano
+        </h1>
+        <p class="text-xl text-gray-600">
+            Plano atual: <span class="font-bold text-purple-600">{{ current_plan|upper }}</span>
+        </p>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+        
+        <!-- Plano Pro -->
+        <div class="bg-white rounded-2xl shadow-xl border-2 {% if current_plan == 'free' %}border-purple-500{% else %}border-gray-200{% endif %} p-8">
+            <div class="text-center mb-6">
+                <i class="fas fa-star text-5xl text-purple-600 mb-4"></i>
+                <h2 class="text-3xl font-bold text-gray-900 mb-2">Plano Pro</h2>
+                <div class="text-5xl font-bold text-purple-600 mb-2">
+                    R$ {{ "%.0f"|format(plans.pro.price) }}
+                </div>
+                <p class="text-gray-600">por mês</p>
+            </div>
+            
+            <ul class="space-y-4 mb-8">
+                <li class="flex items-start">
+                    <i class="fas fa-check text-green-500 mr-3 mt-1"></i>
+                    <span class="text-gray-700"><strong>{{ plans.pro.max_sites }} sites</strong> monitorados</span>
+                </li>
+                <li class="flex items-start">
+                    <i class="fas fa-check text-green-500 mr-3 mt-1"></i>
+                    <span class="text-gray-700">Check a cada <strong>1 minuto</strong></span>
+                </li>
+                <li class="flex items-start">
+                    <i class="fas fa-check text-green-500 mr-3 mt-1"></i>
+                    <span class="text-gray-700">Alertas Telegram</span>
+                </li>
+                <li class="flex items-start">
+                    <i class="fas fa-check text-green-500 mr-3 mt-1"></i>
+                    <span class="text-gray-700">Heartbeat Monitoring</span>
+                </li>
+                <li class="flex items-start">
+                    <i class="fas fa-check text-green-500 mr-3 mt-1"></i>
+                    <span class="text-gray-700">Tech Scanner</span>
+                </li>
+            </ul>
+            
+            {% if current_plan == 'free' %}
+            <button onclick="openCheckoutModal('pro')" 
+                    class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 px-6 rounded-lg transition transform hover:scale-105 shadow-lg">
+                <i class="fas fa-arrow-up mr-2"></i>
+                Fazer Upgrade para Pro
+            </button>
+            {% elif current_plan == 'pro' %}
+            <div class="text-center py-4 bg-green-50 rounded-lg">
+                <i class="fas fa-check-circle text-green-600 text-2xl mb-2"></i>
+                <p class="text-green-700 font-semibold">Seu Plano Atual</p>
+            </div>
+            {% else %}
+            <div class="text-center py-4 bg-gray-50 rounded-lg">
+                <i class="fas fa-info-circle text-gray-500 text-2xl mb-2"></i>
+                <p class="text-gray-600">Downgrade disponível via suporte</p>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Plano Agency -->
+        <div class="bg-gradient-to-br from-purple-600 to-blue-600 rounded-2xl shadow-xl border-2 border-purple-500 p-8 text-white transform scale-105">
+            <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-amber-500 text-gray-900 px-4 py-1 rounded-full text-sm font-bold">
+                MAIS COMPLETO
+            </div>
+            
+            <div class="text-center mb-6 mt-4">
+                <i class="fas fa-rocket text-5xl mb-4"></i>
+                <h2 class="text-3xl font-bold mb-2">Plano Agency</h2>
+                <div class="text-5xl font-bold mb-2">
+                    R$ {{ "%.0f"|format(plans.agency.price) }}
+                </div>
+                <p class="text-purple-100">por mês</p>
+            </div>
+            
+            <ul class="space-y-4 mb-8">
+                <li class="flex items-start">
+                    <i class="fas fa-check mr-3 mt-1"></i>
+                    <span><strong>{{ plans.agency.max_sites }} sites</strong> monitorados</span>
+                </li>
+                <li class="flex items-start">
+                    <i class="fas fa-check mr-3 mt-1"></i>
+                    <span>Check a cada <strong>30 segundos</strong></span>
+                </li>
+                <li class="flex items-start">
+                    <i class="fas fa-check mr-3 mt-1"></i>
+                    <span>Todas as features do Pro</span>
+                </li>
+                <li class="flex items-start">
+                    <i class="fas fa-check mr-3 mt-1"></i>
+                    <span>Visual Regression Testing</span>
+                </li>
+                <li class="flex items-start">
+                    <i class="fas fa-check mr-3 mt-1"></i>
+                    <span>Google PageSpeed Insights</span>
+                </li>
+            </ul>
+            
+            {% if current_plan != 'agency' %}
+            <button onclick="openCheckoutModal('agency')" 
+                    class="w-full bg-white hover:bg-gray-100 text-purple-600 font-bold py-4 px-6 rounded-lg transition transform hover:scale-105 shadow-lg">
+                <i class="fas fa-rocket mr-2"></i>
+                Fazer Upgrade para Agency
+            </button>
+            {% else %}
+            <div class="text-center py-4 bg-white/20 rounded-lg">
+                <i class="fas fa-crown text-2xl mb-2"></i>
+                <p class="font-semibold">Seu Plano Atual</p>
+            </div>
+            {% endif %}
+        </div>
+        
+    </div>
+    
+    <!-- FAQ / Benefícios -->
+    <div class="bg-white rounded-lg shadow-md p-8 mb-8">
+        <h3 class="text-2xl font-bold text-gray-900 mb-6">
+            <i class="fas fa-question-circle text-purple-600 mr-2"></i>
+            Perguntas Frequentes
+        </h3>
+        
+        <div class="space-y-4">
+            <div>
+                <h4 class="font-bold text-gray-900 mb-2">💳 Formas de pagamento aceitas?</h4>
+                <p class="text-gray-700">Boleto bancário e PIX. O upgrade é liberado automaticamente após confirmação do pagamento.</p>
+            </div>
+            
+            <div>
+                <h4 class="font-bold text-gray-900 mb-2">⏱️ Quanto tempo demora para ativar?</h4>
+                <p class="text-gray-700">PIX: Instantâneo | Boleto: 1-2 dias úteis após compensação bancária.</p>
+            </div>
+            
+            <div>
+                <h4 class="font-bold text-gray-900 mb-2">🔄 Posso cancelar a qualquer momento?</h4>
+                <p class="text-gray-700">Sim! Entre em contato com o suporte para cancelar. Você continua com acesso até o fim do período pago.</p>
+            </div>
+            
+            <div>
+                <h4 class="font-bold text-gray-900 mb-2">📊 Posso testar antes de pagar?</h4>
+                <p class="text-gray-700">Sim! O Plano Free permite testar todas as funcionalidades com 1 site.</p>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<!-- Modal de Checkout -->
+<div id="checkoutModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
+        <h3 class="text-2xl font-bold text-gray-900 mb-4">
+            <i class="fas fa-credit-card text-purple-600 mr-2"></i>
+            Escolha a forma de pagamento
+        </h3>
+        
+        <form id="checkoutForm" method="POST" action="/checkout">
+            <input type="hidden" name="plan" id="selectedPlan">
+            
+            <div class="space-y-4 mb-6">
+                <label class="flex items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-purple-500 transition">
+                    <input type="radio" name="billing_type" value="PIX" class="mr-3" checked>
+                    <div class="flex-1">
+                        <div class="font-bold text-gray-900">PIX</div>
+                        <div class="text-sm text-gray-600">Pagamento instantâneo</div>
+                    </div>
+                    <i class="fas fa-qrcode text-2xl text-purple-600"></i>
+                </label>
+                
+                <label class="flex items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-purple-500 transition">
+                    <input type="radio" name="billing_type" value="BOLETO" class="mr-3">
+                    <div class="flex-1">
+                        <div class="font-bold text-gray-900">Boleto Bancário</div>
+                        <div class="text-sm text-gray-600">Vencimento em 7 dias</div>
+                    </div>
+                    <i class="fas fa-barcode text-2xl text-blue-600"></i>
+                </label>
+            </div>
+            
+            <div class="flex space-x-4">
+                <button type="button" onclick="closeCheckoutModal()" 
+                        class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 px-6 rounded-lg transition">
+                    Cancelar
+                </button>
+                <button type="submit" 
+                        class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition">
+                    Continuar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function openCheckoutModal(plan) {
+    document.getElementById('selectedPlan').value = plan;
+    document.getElementById('checkoutModal').classList.remove('hidden');
+}
+
+function closeCheckoutModal() {
+    document.getElementById('checkoutModal').classList.add('hidden');
+}
+
+// Fecha modal ao clicar fora
+document.getElementById('checkoutModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeCheckoutModal();
+    }
+});
+</script>
+
+{% endblock %}

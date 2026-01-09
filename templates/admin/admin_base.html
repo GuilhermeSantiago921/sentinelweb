@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Admin - SentinelWeb{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    
+    <!-- Sidebar -->
+    <div class="fixed inset-y-0 left-0 w-64 bg-gray-900 shadow-xl">
+        <!-- Logo -->
+        <div class="flex items-center justify-center h-20 bg-gray-800 border-b border-gray-700">
+            <div class="flex items-center">
+                <i class="fas fa-shield-halved text-3xl text-red-500 mr-3"></i>
+                <div>
+                    <h1 class="text-xl font-bold text-white">SentinelWeb</h1>
+                    <p class="text-xs text-gray-400">Admin Panel</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Admin Info -->
+        <div class="p-4 border-b border-gray-700 bg-gray-800">
+            <div class="flex items-center">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-red-500 to-pink-600 flex items-center justify-center">
+                    <i class="fas fa-user-shield text-white"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-semibold text-white">{{ admin.email }}</p>
+                    <p class="text-xs text-gray-400">Superadmin</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Navigation Menu -->
+        <nav class="mt-4 px-3">
+            <a href="/admin" class="flex items-center px-4 py-3 mb-2 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors {% if request.url.path == '/admin' %}bg-gray-800 text-white{% endif %}">
+                <i class="fas fa-chart-line w-5 text-center mr-3"></i>
+                <span>Dashboard</span>
+            </a>
+            
+            <a href="/admin/users" class="flex items-center px-4 py-3 mb-2 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors {% if '/admin/users' in request.url.path %}bg-gray-800 text-white{% endif %}">
+                <i class="fas fa-users w-5 text-center mr-3"></i>
+                <span>Usuários</span>
+            </a>
+            
+            <a href="/admin/sites" class="flex items-center px-4 py-3 mb-2 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors {% if '/admin/sites' in request.url.path %}bg-gray-800 text-white{% endif %}">
+                <i class="fas fa-globe w-5 text-center mr-3"></i>
+                <span>Sites</span>
+            </a>
+            
+            <a href="/admin/payments" class="flex items-center px-4 py-3 mb-2 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors {% if '/admin/payments' in request.url.path %}bg-gray-800 text-white{% endif %}">
+                <i class="fas fa-credit-card w-5 text-center mr-3"></i>
+                <span>Pagamentos</span>
+            </a>
+            
+            <a href="/admin/config" class="flex items-center px-4 py-3 mb-2 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors {% if '/admin/config' in request.url.path %}bg-gray-800 text-white{% endif %}">
+                <i class="fas fa-cog w-5 text-center mr-3"></i>
+                <span>Configurações</span>
+            </a>
+            
+            <div class="border-t border-gray-700 my-4"></div>
+            
+            <a href="/dashboard" class="flex items-center px-4 py-3 mb-2 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors">
+                <i class="fas fa-arrow-left w-5 text-center mr-3"></i>
+                <span>Voltar ao Dashboard</span>
+            </a>
+            
+            <a href="/logout" class="flex items-center px-4 py-3 mb-2 text-red-400 hover:bg-red-900/20 hover:text-red-300 rounded-lg transition-colors">
+                <i class="fas fa-sign-out-alt w-5 text-center mr-3"></i>
+                <span>Sair</span>
+            </a>
+        </nav>
+    </div>
+    
+    <!-- Main Content -->
+    <div class="ml-64 p-8">
+        {% block admin_content %}{% endblock %}
+    </div>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>

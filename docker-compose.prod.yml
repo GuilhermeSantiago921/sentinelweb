@@ -1,0 +1,352 @@
+# ============================================
+# SENTINELWEB - DOCKER COMPOSE PARA PRODUÇÃO
+# ============================================
+# PostgreSQL + Redis + FastAPI + Celery Worker
+# Otimizado para VPS Hostinger
+
+version: '3.9'
+
+services:
+  # ============================================
+  # PostgreSQL Database (Master)
+  # ============================================
+  db:
+    image: postgres:15-alpine
+    container_name: sentinelweb_db_prod
+    restart: unless-stopped
+    
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-sentinelweb_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD obrigatório}
+      POSTGRES_DB: ${POSTGRES_DB:-sentinelweb_prod}
+      PGDATA: /var/lib/postgresql/data/pgdata
+      # Performance tuning para VPS
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=pt_BR.UTF-8"
+    
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups/postgres:/backups
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    
+    # NÃO expor porta externamente (apenas rede interna)
+    expose:
+      - "5432"
+    
+    networks:
+      - sentinelweb_network
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sentinelweb_user} -d ${POSTGRES_DB:-sentinelweb_prod}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    
+    # Limites de recursos
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    
+    # Backup automático diário
+    labels:
+      - "com.centurylinklabs.watchtower.enable=false"
+      - "backup.enable=true"
+      - "backup.schedule=0 2 * * *"  # 2AM diariamente
+
+  # ============================================
+  # Redis (Message Broker)
+  # ============================================
+  redis:
+    image: redis:7-alpine
+    container_name: sentinelweb_redis_prod
+    restart: unless-stopped
+    
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --maxmemory 512mb
+      --maxmemory-policy allkeys-lru
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD obrigatório}
+    
+    volumes:
+      - redis_data:/data
+    
+    # NÃO expor porta externamente
+    expose:
+      - "6379"
+    
+    networks:
+      - sentinelweb_network
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  # ============================================
+  # FastAPI Application (Main Web Server)
+  # ============================================
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        BUILD_DATE: ${BUILD_DATE:-2026-01-08}
+        VERSION: ${VERSION:-1.0.0}
+    
+    container_name: sentinelweb_web_prod
+    restart: unless-stopped
+    
+    # Comando otimizado para produção
+    command: >
+      uvicorn main:app
+      --host 0.0.0.0
+      --port 8000
+      --workers 4
+      --no-access-log
+      --proxy-headers
+      --forwarded-allow-ips='*'
+    
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=${DATABASE_URL:?DATABASE_URL obrigatório}
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY obrigatório}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - ASAAS_API_KEY=${ASAAS_API_KEY}
+      - ASAAS_API_URL=${ASAAS_API_URL:-https://api.asaas.com/v3}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - APP_DOMAIN=${APP_DOMAIN:?APP_DOMAIN obrigatório}
+      - APP_URL=${APP_URL:?APP_URL obrigatório}
+    
+    # Expõe apenas para Nginx (localhost)
+    expose:
+      - "8000"
+    
+    ports:
+      - "127.0.0.1:8000:8000"  # Bind apenas localhost
+    
+    volumes:
+      # Logs persistentes
+      - ./logs:/var/log/sentinelweb
+      # Screenshots de visual regression
+      - ./static/screenshots:/app/static/screenshots
+      # Backups
+      - ./backups:/app/backups
+    
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    
+    networks:
+      - sentinelweb_network
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    
+    # Read-only root filesystem (exceto volumes)
+    read_only: false  # Playwright precisa de write
+    
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # ============================================
+  # Celery Worker (Background Tasks)
+  # ============================================
+  celery_worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    
+    container_name: sentinelweb_celery_prod
+    restart: unless-stopped
+    
+    command: >
+      celery -A celery_app worker
+      --loglevel=info
+      --concurrency=4
+      --max-tasks-per-child=100
+      --time-limit=300
+      --soft-time-limit=240
+    
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=${DATABASE_URL}
+      - SECRET_KEY=${SECRET_KEY}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - ASAAS_API_KEY=${ASAAS_API_KEY}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    
+    volumes:
+      - ./logs:/var/log/sentinelweb
+      - ./static/screenshots:/app/static/screenshots
+    
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      web:
+        condition: service_started
+    
+    networks:
+      - sentinelweb_network
+    
+    healthcheck:
+      test: ["CMD", "celery", "-A", "celery_app", "inspect", "ping"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    
+    security_opt:
+      - no-new-privileges:true
+
+  # ============================================
+  # Celery Beat (Scheduler)
+  # ============================================
+  celery_beat:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    
+    container_name: sentinelweb_beat_prod
+    restart: unless-stopped
+    
+    command: >
+      celery -A celery_app beat
+      --loglevel=info
+      --pidfile=/tmp/celerybeat.pid
+      --schedule=/tmp/celerybeat-schedule
+    
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=${DATABASE_URL}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    
+    volumes:
+      - ./logs:/var/log/sentinelweb
+    
+    depends_on:
+      - redis
+      - celery_worker
+    
+    networks:
+      - sentinelweb_network
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    
+    security_opt:
+      - no-new-privileges:true
+
+# ============================================
+# VOLUMES (Dados Persistentes)
+# ============================================
+volumes:
+  postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /var/lib/sentinelweb/postgres
+  
+  redis_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /var/lib/sentinelweb/redis
+
+# ============================================
+# NETWORKS (Rede Interna Isolada)
+# ============================================
+networks:
+  sentinelweb_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+    driver_opts:
+      com.docker.network.bridge.name: br-sentinelweb
+
+# ============================================
+# COMANDOS ÚTEIS
+# ============================================
+# Subir ambiente:
+#   docker-compose -f docker-compose.prod.yml up -d
+#
+# Ver logs:
+#   docker-compose -f docker-compose.prod.yml logs -f web
+#
+# Backup do banco:
+#   docker-compose -f docker-compose.prod.yml exec db pg_dump -U sentinelweb_user sentinelweb_prod > backup.sql
+#
+# Restore do banco:
+#   docker-compose -f docker-compose.prod.yml exec -T db psql -U sentinelweb_user sentinelweb_prod < backup.sql
+#
+# Migrar banco (primeira vez):
+#   docker-compose -f docker-compose.prod.yml exec web python migrate_to_postgres.py
+#
+# Acessar container:
+#   docker-compose -f docker-compose.prod.yml exec web sh
+#
+# Verificar saúde:
+#   docker-compose -f docker-compose.prod.yml ps

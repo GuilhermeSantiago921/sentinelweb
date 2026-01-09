@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Pagamento Criado - SentinelWeb{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    
+    <div class="text-center mb-8">
+        <div class="inline-block bg-green-100 rounded-full p-6 mb-4">
+            <i class="fas fa-check-circle text-6xl text-green-600"></i>
+        </div>
+        <h1 class="text-4xl font-bold text-gray-900 mb-2">
+            Cobrança Criada com Sucesso!
+        </h1>
+        <p class="text-xl text-gray-600">
+            Agora é só efetuar o pagamento
+        </p>
+    </div>
+    
+    <!-- Informações do Pagamento -->
+    <div class="bg-white rounded-lg shadow-lg p-8 mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">
+            <i class="fas fa-info-circle text-purple-600 mr-2"></i>
+            Detalhes do Pagamento
+        </h2>
+        
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <div>
+                <p class="text-sm text-gray-600">Plano</p>
+                <p class="text-lg font-bold text-gray-900">{{ payment.description }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Valor</p>
+                <p class="text-lg font-bold text-green-600">R$ {{ "%.2f"|format(payment.value) }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Vencimento</p>
+                <p class="text-lg font-bold text-gray-900">{{ payment.due_date.strftime('%d/%m/%Y') }}</p>
+            </div>
+            <div>
+                <p class="text-sm text-gray-600">Status</p>
+                <p class="text-lg font-bold text-amber-600">{{ payment.status_label }}</p>
+            </div>
+        </div>
+        
+        <!-- PIX -->
+        {% if payment.billing_type.value == 'PIX' and payment.pix_copy_paste %}
+        <div class="bg-purple-50 border-2 border-purple-500 rounded-lg p-6 mb-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">
+                <i class="fas fa-qrcode text-purple-600 mr-2"></i>
+                Pagar com PIX
+            </h3>
+            
+            {% if payment.pix_qrcode %}
+            <div class="text-center mb-4">
+                <img src="data:image/png;base64,{{ payment.pix_qrcode }}" 
+                     alt="QR Code PIX" 
+                     class="inline-block max-w-xs border-4 border-white shadow-lg rounded-lg">
+                <p class="text-sm text-gray-600 mt-2">Escaneie com o app do seu banco</p>
+            </div>
+            {% endif %}
+            
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    Ou copie o código PIX:
+                </label>
+                <div class="flex">
+                    <input type="text" 
+                           id="pixCode" 
+                           value="{{ payment.pix_copy_paste }}" 
+                           readonly
+                           class="flex-1 px-4 py-2 border border-gray-300 rounded-l-lg bg-gray-50 text-sm">
+                    <button onclick="copyPixCode()" 
+                            class="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-r-lg transition">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+                <p id="copiedMessage" class="hidden text-sm text-green-600 mt-2">
+                    <i class="fas fa-check mr-1"></i>
+                    Código copiado!
+                </p>
+            </div>
+            
+            <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded">
+                <div class="flex">
+                    <i class="fas fa-bolt text-amber-600 text-xl mr-3"></i>
+                    <div class="text-sm text-amber-800">
+                        <strong>Pagamento instantâneo!</strong> Assim que você pagar, seu plano será ativado automaticamente.
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- BOLETO -->
+        {% if payment.billing_type.value == 'BOLETO' and payment.bank_slip_url %}
+        <div class="bg-blue-50 border-2 border-blue-500 rounded-lg p-6 mb-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-4">
+                <i class="fas fa-barcode text-blue-600 mr-2"></i>
+                Pagar com Boleto
+            </h3>
+            
+            <div class="text-center mb-4">
+                <a href="{{ payment.bank_slip_url }}" 
+                   target="_blank"
+                   class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-lg transition transform hover:scale-105 shadow-lg">
+                    <i class="fas fa-download mr-2"></i>
+                    Baixar Boleto
+                </a>
+            </div>
+            
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                <div class="flex">
+                    <i class="fas fa-clock text-blue-600 text-xl mr-3"></i>
+                    <div class="text-sm text-blue-800">
+                        <strong>Atenção:</strong> O boleto leva 1-2 dias úteis para compensar. Seu plano será ativado automaticamente após a confirmação bancária.
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+    </div>
+    
+    <!-- O que acontece agora? -->
+    <div class="bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg shadow-md p-8 mb-8">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6">
+            <i class="fas fa-rocket text-purple-600 mr-2"></i>
+            O que acontece agora?
+        </h2>
+        
+        <div class="space-y-4">
+            <div class="flex items-start">
+                <div class="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold mr-4 mt-1">1</div>
+                <div>
+                    <h4 class="font-bold text-gray-900">Efetue o pagamento</h4>
+                    <p class="text-gray-700">Use o PIX ou boleto acima para pagar</p>
+                </div>
+            </div>
+            
+            <div class="flex items-start">
+                <div class="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold mr-4 mt-1">2</div>
+                <div>
+                    <h4 class="font-bold text-gray-900">Aguarde a confirmação</h4>
+                    <p class="text-gray-700">PIX é instantâneo, boleto leva 1-2 dias úteis</p>
+                </div>
+            </div>
+            
+            <div class="flex items-start">
+                <div class="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold mr-4 mt-1">3</div>
+                <div>
+                    <h4 class="font-bold text-gray-900">Seu plano é ativado automaticamente</h4>
+                    <p class="text-gray-700">Você receberá um email de confirmação e poderá usar todos os recursos</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Botões de Ação -->
+    <div class="flex justify-center space-x-4">
+        <a href="/dashboard" 
+           class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-3 px-6 rounded-lg transition">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Voltar ao Dashboard
+        </a>
+        
+        {% if payment.invoice_url %}
+        <a href="{{ payment.invoice_url }}" 
+           target="_blank"
+           class="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded-lg transition">
+            <i class="fas fa-file-invoice mr-2"></i>
+            Ver Fatura Completa
+        </a>
+        {% endif %}
+    </div>
+    
+</div>
+
+<script>
+function copyPixCode() {
+    const pixCode = document.getElementById('pixCode');
+    pixCode.select();
+    pixCode.setSelectionRange(0, 99999); // Mobile
+    
+    navigator.clipboard.writeText(pixCode.value).then(() => {
+        const message = document.getElementById('copiedMessage');
+        message.classList.remove('hidden');
+        setTimeout(() => {
+            message.classList.add('hidden');
+        }, 3000);
+    });
+}
+</script>
+
+{% endblock %}

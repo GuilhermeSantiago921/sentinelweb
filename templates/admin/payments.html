@@ -1,0 +1,296 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Pagamentos - Admin | SentinelWeb{% endblock %}
+
+{% block admin_content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">💳 Gestão de Pagamentos</h1>
+    <p class="text-gray-600 mt-2">Monitore e gerencie todos os pagamentos do sistema</p>
+</div>
+
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
+    <!-- Monthly Revenue -->
+    <div class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-lg shadow-lg p-6">
+        <div class="flex items-center justify-between mb-2">
+            <i class="fas fa-chart-line text-3xl opacity-80"></i>
+            <span class="text-xs bg-white/20 px-2 py-1 rounded">Este Mês</span>
+        </div>
+        <h3 class="text-sm font-medium opacity-90">Receita Mensal</h3>
+        <p class="text-3xl font-bold mt-2">R$ {{ "%.2f"|format(stats.monthly_revenue) }}</p>
+    </div>
+    
+    <!-- Total Revenue -->
+    <div class="bg-gradient-to-br from-blue-500 to-indigo-600 text-white rounded-lg shadow-lg p-6">
+        <div class="flex items-center justify-between mb-2">
+            <i class="fas fa-wallet text-3xl opacity-80"></i>
+            <span class="text-xs bg-white/20 px-2 py-1 rounded">Total</span>
+        </div>
+        <h3 class="text-sm font-medium opacity-90">Receita Total</h3>
+        <p class="text-3xl font-bold mt-2">R$ {{ "%.2f"|format(stats.total_revenue) }}</p>
+    </div>
+    
+    <!-- Received -->
+    <div class="bg-white border-l-4 border-green-500 rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-medium text-gray-600">Recebidos</h3>
+                <p class="text-2xl font-bold text-gray-900 mt-1">{{ stats.received }}</p>
+            </div>
+            <i class="fas fa-check-circle text-green-500 text-3xl"></i>
+        </div>
+    </div>
+    
+    <!-- Pending -->
+    <div class="bg-white border-l-4 border-yellow-500 rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-medium text-gray-600">Pendentes</h3>
+                <p class="text-2xl font-bold text-gray-900 mt-1">{{ stats.pending }}</p>
+            </div>
+            <i class="fas fa-clock text-yellow-500 text-3xl"></i>
+        </div>
+    </div>
+    
+    <!-- Overdue -->
+    <div class="bg-white border-l-4 border-red-500 rounded-lg shadow p-6">
+        <div class="flex items-center justify-between">
+            <div>
+                <h3 class="text-sm font-medium text-gray-600">Vencidos</h3>
+                <p class="text-2xl font-bold text-gray-900 mt-1">{{ stats.overdue }}</p>
+            </div>
+            <i class="fas fa-exclamation-triangle text-red-500 text-3xl"></i>
+        </div>
+    </div>
+</div>
+
+<!-- Filters & Actions -->
+<div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-4">
+        <!-- Status Filters -->
+        <div class="flex flex-wrap gap-2">
+            <a href="/admin/payments" 
+               class="px-4 py-2 rounded-lg font-medium transition {% if not status_filter %}bg-gray-800 text-white{% else %}bg-gray-100 text-gray-700 hover:bg-gray-200{% endif %}">
+                <i class="fas fa-list mr-1"></i> Todos
+            </a>
+            <a href="/admin/payments?status=pending" 
+               class="px-4 py-2 rounded-lg font-medium transition {% if status_filter == 'pending' %}bg-yellow-500 text-white{% else %}bg-yellow-50 text-yellow-700 hover:bg-yellow-100{% endif %}">
+                <i class="fas fa-clock mr-1"></i> Pendentes
+            </a>
+            <a href="/admin/payments?status=received" 
+               class="px-4 py-2 rounded-lg font-medium transition {% if status_filter == 'received' %}bg-green-500 text-white{% else %}bg-green-50 text-green-700 hover:bg-green-100{% endif %}">
+                <i class="fas fa-check-circle mr-1"></i> Recebidos
+            </a>
+            <a href="/admin/payments?status=confirmed" 
+               class="px-4 py-2 rounded-lg font-medium transition {% if status_filter == 'confirmed' %}bg-blue-500 text-white{% else %}bg-blue-50 text-blue-700 hover:bg-blue-100{% endif %}">
+                <i class="fas fa-check-double mr-1"></i> Confirmados
+            </a>
+            <a href="/admin/payments?status=overdue" 
+               class="px-4 py-2 rounded-lg font-medium transition {% if status_filter == 'overdue' %}bg-red-500 text-white{% else %}bg-red-50 text-red-700 hover:bg-red-100{% endif %}">
+                <i class="fas fa-exclamation-triangle mr-1"></i> Vencidos
+            </a>
+        </div>
+        
+        <!-- Export Button -->
+        <a href="/admin/payments/export" 
+           class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-lg font-medium transition flex items-center">
+            <i class="fas fa-download mr-2"></i>
+            Exportar CSV
+        </a>
+    </div>
+</div>
+
+<!-- Payments Table -->
+<div class="bg-white rounded-lg shadow-lg overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuário</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vencimento</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Criado</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% if payments %}
+                    {% for payment in payments %}
+                    <tr class="hover:bg-gray-50 transition">
+                        <!-- ID -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-mono text-gray-900">#{{ payment.id }}</div>
+                            {% if payment.asaas_id %}
+                            <div class="text-xs text-gray-500 font-mono">{{ payment.asaas_id[:15] }}...</div>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- User -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="flex items-center">
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">{{ payment.user.full_name }}</div>
+                                    <div class="text-xs text-gray-500">{{ payment.user.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        
+                        <!-- Value -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm font-bold text-gray-900">R$ {{ "%.2f"|format(payment.value) }}</div>
+                            {% if payment.net_value and payment.net_value != payment.value %}
+                            <div class="text-xs text-gray-500">Líquido: R$ {{ "%.2f"|format(payment.net_value) }}</div>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Status -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                {% if payment.status_color == 'green' %}bg-green-100 text-green-800
+                                {% elif payment.status_color == 'yellow' %}bg-yellow-100 text-yellow-800
+                                {% elif payment.status_color == 'red' %}bg-red-100 text-red-800
+                                {% elif payment.status_color == 'blue' %}bg-blue-100 text-blue-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ payment.status_label }}
+                            </span>
+                            {% if payment.is_overdue %}
+                            <div class="text-xs text-red-600 mt-1">
+                                <i class="fas fa-exclamation-circle"></i> Vencido
+                            </div>
+                            {% elif payment.days_until_due is not none and payment.days_until_due >= 0 and payment.days_until_due <= 3 %}
+                            <div class="text-xs text-orange-600 mt-1">
+                                <i class="fas fa-clock"></i> {{ payment.days_until_due }}d restantes
+                            </div>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Billing Type -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">
+                                {% if payment.billing_type.value == 'boleto' %}
+                                    <i class="fas fa-barcode text-blue-500"></i> Boleto
+                                {% elif payment.billing_type.value == 'credit_card' %}
+                                    <i class="fas fa-credit-card text-purple-500"></i> Cartão
+                                {% elif payment.billing_type.value == 'pix' %}
+                                    <i class="fas fa-qrcode text-teal-500"></i> PIX
+                                {% else %}
+                                    <i class="fas fa-question-circle text-gray-400"></i> {{ payment.billing_type.value }}
+                                {% endif %}
+                            </div>
+                        </td>
+                        
+                        <!-- Due Date -->
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            <div class="text-sm text-gray-900">
+                                {{ payment.due_date.strftime('%d/%m/%Y') if payment.due_date else '-' }}
+                            </div>
+                            {% if payment.payment_date %}
+                            <div class="text-xs text-green-600">
+                                <i class="fas fa-check"></i> Pago em {{ payment.payment_date.strftime('%d/%m/%Y') }}
+                            </div>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Created -->
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {{ payment.created_at.strftime('%d/%m/%Y %H:%M') if payment.created_at else '-' }}
+                        </td>
+                        
+                        <!-- Actions -->
+                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <div class="flex items-center justify-end gap-2">
+                                <!-- Sync Button -->
+                                <button 
+                                    onclick="syncPayment({{ payment.id }})"
+                                    class="text-indigo-600 hover:text-indigo-900 transition"
+                                    title="Sincronizar com Asaas"
+                                >
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                                
+                                <!-- Invoice Link -->
+                                {% if payment.invoice_url %}
+                                <a href="{{ payment.invoice_url }}" 
+                                   target="_blank"
+                                   class="text-blue-600 hover:text-blue-900 transition"
+                                   title="Ver Fatura">
+                                    <i class="fas fa-file-invoice"></i>
+                                </a>
+                                {% endif %}
+                                
+                                <!-- Bank Slip Link -->
+                                {% if payment.bank_slip_url %}
+                                <a href="{{ payment.bank_slip_url }}" 
+                                   target="_blank"
+                                   class="text-green-600 hover:text-green-900 transition"
+                                   title="Ver Boleto">
+                                    <i class="fas fa-barcode"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="8" class="px-6 py-12 text-center">
+                            <div class="flex flex-col items-center justify-center text-gray-400">
+                                <i class="fas fa-inbox text-6xl mb-4"></i>
+                                <h3 class="text-lg font-semibold text-gray-600">Nenhum pagamento encontrado</h3>
+                                <p class="text-sm mt-2">
+                                    {% if status_filter %}
+                                    Não há pagamentos com o status "{{ status_filter }}".
+                                    {% else %}
+                                    Ainda não há pagamentos registrados no sistema.
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Sync Payment Script -->
+<script>
+async function syncPayment(paymentId) {
+    if (!confirm('Deseja sincronizar este pagamento com o Asaas?')) return;
+    
+    const button = event.target.closest('button');
+    const icon = button.querySelector('i');
+    
+    // Add spinning animation
+    icon.classList.add('fa-spin');
+    button.disabled = true;
+    
+    try {
+        const response = await fetch(`/admin/payments/${paymentId}/sync`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            alert('✅ ' + data.message);
+            location.reload();
+        } else {
+            alert('❌ Erro: ' + (data.detail || 'Falha ao sincronizar'));
+        }
+    } catch (error) {
+        alert('❌ Erro de conexão: ' + error.message);
+    } finally {
+        icon.classList.remove('fa-spin');
+        button.disabled = false;
+    }
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,218 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Gerenciar Usuários - Admin SentinelWeb{% endblock %}
+
+{% block admin_content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-white mb-2">Gerenciamento de Usuários</h1>
+    <p class="text-gray-400">Visualize, edite e gerencie todos os usuários do sistema</p>
+</div>
+
+<!-- Tabela de Usuários -->
+<div class="bg-white rounded-lg shadow-lg overflow-hidden">
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Empresa</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plano</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sites</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cadastro</th>
+                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for user in users %}
+                <tr class="hover:bg-gray-50 transition-colors">
+                    <!-- ID -->
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="text-sm font-medium text-gray-900">#{{ user.id }}</span>
+                    </td>
+                    
+                    <!-- Email -->
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-10 w-10">
+                                <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                                    <span class="text-white font-bold text-sm">{{ user.email[0].upper() }}</span>
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">{{ user.email }}</div>
+                                {% if user.is_superuser %}
+                                <div class="text-xs text-red-500 font-semibold">
+                                    <i class="fas fa-shield-halved mr-1"></i>SUPERADMIN
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </td>
+                    
+                    <!-- Empresa -->
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="text-sm text-gray-900">{{ user.company_name or '-' }}</span>
+                    </td>
+                    
+                    <!-- Plano -->
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if user.plan_status == 'free' %}
+                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-200 text-gray-800">
+                            <i class="fas fa-user mr-1"></i> Free
+                        </span>
+                        {% elif user.plan_status == 'pro' %}
+                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-amber-100 text-amber-800">
+                            <i class="fas fa-star mr-1"></i> Pro
+                        </span>
+                        {% elif user.plan_status == 'agency' %}
+                        <span class="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-purple-100 text-purple-800">
+                            <i class="fas fa-gem mr-1"></i> Agency
+                        </span>
+                        {% endif %}
+                    </td>
+                    
+                    <!-- Número de Sites -->
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="text-sm text-gray-900 font-semibold">{{ user.sites_count }}</span>
+                        <span class="text-xs text-gray-500"> sites</span>
+                    </td>
+                    
+                    <!-- Status -->
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if user.is_active %}
+                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                            <i class="fas fa-check-circle mr-1"></i> Ativo
+                        </span>
+                        {% else %}
+                        <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                            <i class="fas fa-ban mr-1"></i> Banido
+                        </span>
+                        {% endif %}
+                    </td>
+                    
+                    <!-- Data de Cadastro -->
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {{ user.created_at.strftime('%d/%m/%Y') if user.created_at else '-' }}
+                    </td>
+                    
+                    <!-- Ações -->
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div class="flex justify-end space-x-2">
+                            <!-- Editar Plano -->
+                            <button 
+                                onclick="openEditModal({{ user.id }}, '{{ user.email }}', '{{ user.plan_status }}')"
+                                class="text-indigo-600 hover:text-indigo-900 transition-colors"
+                                title="Editar Plano"
+                            >
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            
+                            <!-- Logar Como (Impersonate) -->
+                            {% if not user.is_superuser %}
+                            <a 
+                                href="/admin/impersonate/{{ user.id }}"
+                                class="text-blue-600 hover:text-blue-900 transition-colors"
+                                title="Logar como este usuário"
+                                onclick="return confirm('Deseja fazer login como {{ user.email }}? Você será redirecionado para o dashboard dele.')"
+                            >
+                                <i class="fas fa-user-secret"></i>
+                            </a>
+                            
+                            <!-- Ban/Unban -->
+                            <form method="POST" action="/admin/users/{{ user.id }}/toggle_active" class="inline">
+                                <button 
+                                    type="submit"
+                                    class="{% if user.is_active %}text-red-600 hover:text-red-900{% else %}text-green-600 hover:text-green-900{% endif %} transition-colors"
+                                    title="{% if user.is_active %}Banir usuário{% else %}Reativar usuário{% endif %}"
+                                    onclick="return confirm('Confirma {% if user.is_active %}banir{% else %}reativar{% endif %} o usuário {{ user.email }}?')"
+                                >
+                                    <i class="fas fa-{% if user.is_active %}ban{% else %}check-circle{% endif %}"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal de Edição de Plano -->
+<div id="editModal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <h3 class="text-lg font-bold text-gray-900 mb-4">Editar Plano do Usuário</h3>
+            
+            <form id="editForm" method="POST" action="">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Usuário: <span id="modalEmail" class="font-bold"></span>
+                    </label>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Plano:</label>
+                    <select name="plan" id="planSelect" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="free">Free</option>
+                        <option value="pro">Pro (R$ 49/mês)</option>
+                        <option value="agency">Agency (R$ 149/mês)</option>
+                    </select>
+                </div>
+                
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button 
+                        type="button"
+                        onclick="closeEditModal()"
+                        class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors"
+                    >
+                        Cancelar
+                    </button>
+                    <button 
+                        type="submit"
+                        class="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                    >
+                        Salvar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function openEditModal(userId, email, currentPlan) {
+    const modal = document.getElementById('editModal');
+    const form = document.getElementById('editForm');
+    const emailSpan = document.getElementById('modalEmail');
+    const planSelect = document.getElementById('planSelect');
+    
+    // Define o action do form
+    form.action = `/admin/users/${userId}/update_plan`;
+    
+    // Preenche os dados
+    emailSpan.textContent = email;
+    planSelect.value = currentPlan;
+    
+    // Mostra o modal
+    modal.classList.remove('hidden');
+}
+
+function closeEditModal() {
+    const modal = document.getElementById('editModal');
+    modal.classList.add('hidden');
+}
+
+// Fecha o modal ao clicar fora dele
+document.getElementById('editModal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        closeEditModal();
+    }
+});
+</script>
+{% endblock %}

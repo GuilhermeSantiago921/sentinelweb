@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}{% if heartbeat %}Editar{% else %}Novo{% endif %} Heartbeat - SentinelWeb{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-8">
+    <div class="max-w-2xl mx-auto px-4">
+        <div class="mb-6">
+            <a href="/heartbeats" class="text-blue-600 hover:text-blue-800">
+                <i class="fas fa-arrow-left mr-2"></i>Voltar
+            </a>
+        </div>
+        
+        <div class="bg-white shadow rounded-lg p-8">
+            <h1 class="text-2xl font-bold text-gray-900 mb-6">
+                {% if heartbeat %}Editar Heartbeat{% else %}Novo Heartbeat{% endif %}
+            </h1>
+            
+            <form method="POST">
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nome *</label>
+                        <input 
+                            type="text" 
+                            name="name" 
+                            value="{% if heartbeat %}{{ heartbeat.name }}{% endif %}"
+                            required
+                            placeholder="Ex: Backup Diário do Banco"
+                            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
+                        >
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Descrição</label>
+                        <textarea 
+                            name="description" 
+                            rows="3"
+                            placeholder="Ex: Script que faz backup do banco às 3h"
+                            class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
+                        >{% if heartbeat %}{{ heartbeat.description }}{% endif %}</textarea>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Período (segundos) *</label>
+                            <input 
+                                type="number" 
+                                name="expected_period" 
+                                value="{% if heartbeat %}{{ heartbeat.expected_period }}{% else %}86400{% endif %}"
+                                required
+                                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
+                            >
+                            <p class="text-xs text-gray-500 mt-1">86400 = 1 dia</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Tolerância (segundos) *</label>
+                            <input 
+                                type="number" 
+                                name="grace_period" 
+                                value="{% if heartbeat %}{{ heartbeat.grace_period }}{% else %}3600{% endif %}"
+                                required
+                                class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-red-500"
+                            >
+                            <p class="text-xs text-gray-500 mt-1">3600 = 1 hora</p>
+                        </div>
+                    </div>
+                    
+                    {% if heartbeat %}
+                    <div class="flex items-center">
+                        <input 
+                            type="checkbox" 
+                            name="is_active" 
+                            id="is_active"
+                            {% if heartbeat.is_active %}checked{% endif %}
+                            class="h-4 w-4 text-red-600"
+                        >
+                        <label for="is_active" class="ml-2 text-sm text-gray-900">Ativo</label>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="mt-8 flex space-x-4">
+                    <button 
+                        type="submit"
+                        class="flex-1 bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700"
+                    >
+                        {% if heartbeat %}Salvar{% else %}Criar{% endif %}
+                    </button>
+                    <a 
+                        href="/heartbeats"
+                        class="flex-1 bg-gray-200 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-300 text-center"
+                    >
+                        Cancelar
+                    </a>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Ajuda -->
+        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h3 class="font-bold text-blue-900 mb-2">💡 Como usar:</h3>
+            <ol class="text-sm text-blue-800 space-y-1 ml-4 list-decimal">
+                <li>Crie o heartbeat e copie a URL gerada</li>
+                <li>No seu script/cron, adicione: <code class="bg-white px-2 py-1 rounded">curl URL</code></li>
+                <li>O sistema alertará se o ping não ocorrer no período esperado</li>
+            </ol>
+        </div>
+    </div>
+</div>
+{% endblock %}

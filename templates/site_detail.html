@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}{{ site.name }} - SentinelWeb{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    
+    <div class="mb-6">
+        <a href="/dashboard" class="text-purple-600 hover:text-purple-700 font-medium">
+            <i class="fas fa-arrow-left mr-2"></i>
+            Voltar para Dashboard
+        </a>
+    </div>
+    
+    <!-- Cabeçalho do Site -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center space-x-4">
+                {% if site.current_status == 'online' %}
+                <div class="w-6 h-6 bg-emerald-500 rounded-full animate-pulse"></div>
+                {% elif site.current_status == 'offline' %}
+                <div class="w-6 h-6 bg-red-500 rounded-full animate-pulse"></div>
+                {% else %}
+                <div class="w-6 h-6 bg-gray-400 rounded-full"></div>
+                {% endif %}
+                
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">{{ site.name }}</h1>
+                    <p class="text-gray-600 mt-1">
+                        <i class="fas fa-link mr-1"></i>
+                        <a href="https://{{ site.domain }}" target="_blank" class="hover:text-purple-600">
+                            {{ site.domain }}
+                        </a>
+                    </p>
+                </div>
+            </div>
+            
+            <div class="flex space-x-2">
+                <form method="POST" action="/sites/{{ site.id }}/scan" class="inline">
+                    <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition">
+                        <i class="fas fa-sync-alt mr-2"></i>
+                        Escanear Agora
+                    </button>
+                </form>
+                <a href="/sites/{{ site.id }}/edit" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition">
+                    <i class="fas fa-edit mr-2"></i>
+                    Editar
+                </a>
+            </div>
+        </div>
+        
+        <!-- Métricas Principais -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mt-6">
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <p class="text-sm text-gray-600 font-medium">Status</p>
+                {% if site.current_status == 'online' %}
+                <p class="text-2xl font-bold text-emerald-600 mt-1">
+                    <i class="fas fa-check-circle mr-1"></i> ONLINE
+                </p>
+                {% elif site.current_status == 'offline' %}
+                <p class="text-2xl font-bold text-red-600 mt-1">
+                    <i class="fas fa-times-circle mr-1"></i> OFFLINE
+                </p>
+                {% else %}
+                <p class="text-2xl font-bold text-gray-400 mt-1">AGUARDANDO</p>
+                {% endif %}
+            </div>
+            
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <p class="text-sm text-gray-600 font-medium">Latência Atual</p>
+                <p class="text-2xl font-bold text-gray-900 mt-1">
+                    {% if site.last_latency %}
+                    {{ site.last_latency|latency }}
+                    {% else %}
+                    N/A
+                    {% endif %}
+                </p>
+            </div>
+            
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <p class="text-sm text-gray-600 font-medium">Latência Média (24h)</p>
+                <p class="text-2xl font-bold text-gray-900 mt-1">
+                    {% if avg_latency %}
+                    {{ avg_latency|round|int }}ms
+                    {% else %}
+                    N/A
+                    {% endif %}
+                </p>
+            </div>
+            
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <p class="text-sm text-gray-600 font-medium">Uptime (7 dias)</p>
+                {% if uptime_percent >= 99 %}
+                <p class="text-2xl font-bold text-emerald-600 mt-1">{{ uptime_percent|round(2) }}%</p>
+                {% elif uptime_percent >= 95 %}
+                <p class="text-2xl font-bold text-amber-600 mt-1">{{ uptime_percent|round(2) }}%</p>
+                {% else %}
+                <p class="text-2xl font-bold text-red-600 mt-1">{{ uptime_percent|round(2) }}%</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cards de Segurança -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        
+        <!-- SSL Card -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">
+                <i class="fas fa-lock mr-2"></i>
+                Certificado SSL
+            </h2>
+            
+            {% if site.ssl_valid is not none %}
+                {% if site.ssl_valid %}
+                <div class="flex items-center space-x-3 mb-3">
+                    <i class="fas fa-check-circle text-3xl text-emerald-500"></i>
+                    <div>
+                        <p class="font-bold text-emerald-600">Certificado Válido</p>
+                        <p class="text-sm text-gray-600">
+                            Expira em {{ site.ssl_days_remaining }} dias
+                        </p>
+                    </div>
+                </div>
+                
+                {% if site.ssl_days_remaining < 30 %}
+                <div class="bg-amber-50 border-l-4 border-amber-500 p-4 rounded">
+                    <p class="text-sm text-amber-800">
+                        <i class="fas fa-exclamation-triangle mr-1"></i>
+                        <strong>Atenção:</strong> Certificado expira em menos de 30 dias!
+                    </p>
+                </div>
+                {% endif %}
+                
+                {% else %}
+                <div class="flex items-center space-x-3 mb-3">
+                    <i class="fas fa-times-circle text-3xl text-red-500"></i>
+                    <div>
+                        <p class="font-bold text-red-600">Certificado Inválido ou Expirado</p>
+                        <p class="text-sm text-gray-600">Renove o certificado SSL</p>
+                    </div>
+                </div>
+                {% endif %}
+            {% else %}
+            <p class="text-gray-500">
+                <i class="fas fa-info-circle mr-1"></i>
+                Aguardando verificação...
+            </p>
+            {% endif %}
+        </div>
+        
+        <!-- Portas Card -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">
+                <i class="fas fa-shield-alt mr-2"></i>
+                Scan de Portas
+            </h2>
+            
+            {% if site.open_ports %}
+            <div class="flex items-center space-x-3 mb-3">
+                <i class="fas fa-exclamation-triangle text-3xl text-red-500"></i>
+                <div>
+                    <p class="font-bold text-red-600">Portas Críticas Abertas</p>
+                    <p class="text-sm text-gray-600">Possível risco de segurança</p>
+                </div>
+            </div>
+            
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+                <p class="text-sm text-red-800 mb-2">
+                    <strong>Portas encontradas:</strong>
+                </p>
+                <ul class="text-sm text-red-700 space-y-1">
+                    {% for port in site.open_ports.split(',') %}
+                    <li>
+                        <i class="fas fa-exclamation-circle mr-1"></i>
+                        Porta {{ port }}
+                        {% if port == '21' %} - FTP (inseguro)
+                        {% elif port == '22' %} - SSH
+                        {% elif port == '23' %} - Telnet (muito inseguro!)
+                        {% elif port == '3306' %} - MySQL (banco exposto!)
+                        {% elif port == '5432' %} - PostgreSQL (banco exposto!)
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% else %}
+            <div class="flex items-center space-x-3">
+                <i class="fas fa-check-circle text-3xl text-emerald-500"></i>
+                <div>
+                    <p class="font-bold text-emerald-600">Nenhuma Porta Crítica Aberta</p>
+                    <p class="text-sm text-gray-600">Configuração segura</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        
+    </div>
+    
+    <!-- Histórico de Logs -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">
+            <i class="fas fa-history mr-2"></i>
+            Histórico de Verificações
+        </h2>
+        
+        {% if logs %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Data/Hora
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Status
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            HTTP
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            Latência
+                        </th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            SSL
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    {% for log in logs %}
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {{ log.checked_at|datetime }}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            {% if log.status == 'online' %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-emerald-100 text-emerald-800">
+                                Online
+                            </span>
+                            {% else %}
+                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                                Offline
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {% if log.http_status_code %}
+                            {{ log.http_status_code }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                            {% if log.latency_ms %}
+                            {{ log.latency_ms|latency }}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            {% if log.ssl_valid %}
+                            <i class="fas fa-check text-emerald-500"></i>
+                            {% elif log.ssl_valid is none %}
+                            -
+                            {% else %}
+                            <i class="fas fa-times text-red-500"></i>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-gray-500 text-center py-8">
+            <i class="fas fa-info-circle mr-2"></i>
+            Nenhuma verificação realizada ainda
+        </p>
+        {% endif %}
+    </div>
+    
+</div>
+{% endblock %}

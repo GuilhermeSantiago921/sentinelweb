@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Cadastro - SentinelWeb{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center gradient-bg py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8 bg-white p-10 rounded-2xl shadow-2xl">
+        <div>
+            <div class="text-center">
+                <i class="fas fa-user-plus text-5xl text-purple-600 mb-4"></i>
+                <h2 class="text-3xl font-extrabold text-gray-900">
+                    Criar Conta
+                </h2>
+                <p class="mt-2 text-sm text-gray-600">
+                    Já tem uma conta? 
+                    <a href="/login" class="font-medium text-purple-600 hover:text-purple-500">
+                        Faça login
+                    </a>
+                </p>
+            </div>
+        </div>
+        
+        {% if error %}
+        <div class="bg-red-50 border-l-4 border-red-500 p-4 rounded">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-circle text-red-500"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-red-700">
+                        {{ error }}
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <form class="mt-8 space-y-6" method="POST" action="/register">
+            <div class="space-y-4">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700 mb-2">
+                        Email *
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-envelope text-gray-400"></i>
+                        </div>
+                        <input 
+                            id="email" 
+                            name="email" 
+                            type="email" 
+                            required 
+                            class="appearance-none rounded-lg relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" 
+                            placeholder="seu@email.com"
+                        >
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="company_name" class="block text-sm font-medium text-gray-700 mb-2">
+                        Nome da Empresa/Agência
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-building text-gray-400"></i>
+                        </div>
+                        <input 
+                            id="company_name" 
+                            name="company_name" 
+                            type="text" 
+                            class="appearance-none rounded-lg relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" 
+                            placeholder="Minha Agência"
+                        >
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="cpf_cnpj" class="block text-sm font-medium text-gray-700 mb-2">
+                        CPF ou CNPJ *
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-id-card text-gray-400"></i>
+                        </div>
+                        <input 
+                            id="cpf_cnpj" 
+                            name="cpf_cnpj" 
+                            type="text" 
+                            required
+                            maxlength="18"
+                            class="appearance-none rounded-lg relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" 
+                            placeholder="000.000.000-00 ou 00.000.000/0000-00"
+                            oninput="formatCpfCnpj(this)"
+                        >
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">Digite apenas números, a formatação será automática</p>
+                </div>
+                
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-2">
+                        Senha * (mínimo 6 caracteres)
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-lock text-gray-400"></i>
+                        </div>
+                        <input 
+                            id="password" 
+                            name="password" 
+                            type="password" 
+                            required 
+                            minlength="6"
+                            class="appearance-none rounded-lg relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" 
+                            placeholder="••••••••"
+                        >
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="password_confirm" class="block text-sm font-medium text-gray-700 mb-2">
+                        Confirmar Senha *
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-lock text-gray-400"></i>
+                        </div>
+                        <input 
+                            id="password_confirm" 
+                            name="password_confirm" 
+                            type="password" 
+                            required 
+                            class="appearance-none rounded-lg relative block w-full pl-10 px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent" 
+                            placeholder="••••••••"
+                        >
+                    </div>
+                </div>
+            </div>
+            
+            <div>
+                <button 
+                    type="submit" 
+                    class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition transform hover:scale-105"
+                >
+                    <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                        <i class="fas fa-user-plus text-purple-500 group-hover:text-purple-400"></i>
+                    </span>
+                    Criar Conta
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function formatCpfCnpj(input) {
+    // Remove tudo que não é dígito
+    let value = input.value.replace(/\D/g, '');
+    
+    // Limita a 14 dígitos (CNPJ)
+    value = value.substring(0, 14);
+    
+    // Formata CPF (11 dígitos) ou CNPJ (14 dígitos)
+    if (value.length <= 11) {
+        // Formato CPF: 000.000.000-00
+        value = value.replace(/(\d{3})(\d)/, '$1.$2');
+        value = value.replace(/(\d{3})(\d)/, '$1.$2');
+        value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+    } else {
+        // Formato CNPJ: 00.000.000/0000-00
+        value = value.replace(/^(\d{2})(\d)/, '$1.$2');
+        value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+        value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
+        value = value.replace(/(\d{4})(\d)/, '$1-$2');
+    }
+    
+    input.value = value;
+}
+</script>
+{% endblock %}

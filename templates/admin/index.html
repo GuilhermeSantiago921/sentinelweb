@@ -1,0 +1,262 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Dashboard Executivo - Admin SentinelWeb{% endblock %}
+
+{% block admin_content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-white mb-2">
+        <i class="fas fa-chart-line mr-2"></i>Painel de Controle Executivo
+    </h1>
+    <p class="text-gray-400">Métricas de negócio, infraestrutura e operações em tempo real</p>
+</div>
+
+<!-- KPI Cards Linha 1: Core Metrics -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
+    
+    <!-- Total de Usuários -->
+    <div class="bg-white rounded-lg shadow-lg p-6 border-t-4 border-blue-500 hover:shadow-xl transition-shadow">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-600 mb-1">Total de Usuários</p>
+                <p class="text-3xl font-bold text-gray-800">{{ kpis.total_users }}</p>
+                <div class="mt-2">
+                    <span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full font-semibold">
+                        {{ kpis.paying_users }} pagantes
+                    </span>
+                </div>
+            </div>
+            <div class="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center">
+                <i class="fas fa-users text-3xl text-blue-500"></i>
+            </div>
+        </div>
+        <div class="mt-4 text-xs text-gray-500 border-t pt-2">
+            <i class="fas fa-percentage text-blue-500 mr-1"></i>
+            Conversão: <strong>{{ kpis.conversion_rate }}%</strong>
+        </div>
+    </div>
+    
+    <!-- Sites Monitorados -->
+    <div class="bg-white rounded-lg shadow-lg p-6 border-t-4 border-purple-500 hover:shadow-xl transition-shadow">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-600 mb-1">Sites Monitorados</p>
+                <p class="text-3xl font-bold text-gray-800">{{ kpis.total_sites }}</p>
+                <div class="mt-2 flex items-center space-x-2">
+                    <span class="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full">
+                        {{ kpis.online_sites }} online
+                    </span>
+                    {% if kpis.offline_sites > 0 %}
+                    <span class="text-xs px-2 py-1 bg-red-100 text-red-800 rounded-full">
+                        {{ kpis.offline_sites }} off
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="w-16 h-16 rounded-full bg-purple-100 flex items-center justify-center">
+                <i class="fas fa-globe text-3xl text-purple-500"></i>
+            </div>
+        </div>
+        <div class="mt-4 text-xs text-gray-500 border-t pt-2">
+            <i class="fas fa-heartbeat text-purple-500 mr-1"></i>
+            Uptime: <strong>{{ kpis.uptime_percent }}%</strong>
+        </div>
+    </div>
+    
+    <!-- MRR (Monthly Recurring Revenue) -->
+    <div class="bg-white rounded-lg shadow-lg p-6 border-t-4 border-green-500 hover:shadow-xl transition-shadow">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-600 mb-1">MRR (Receita Mensal)</p>
+                <p class="text-3xl font-bold text-gray-800">R$ {{ "{:,.0f}".format(kpis.mrr) }}</p>
+                <div class="mt-2">
+                    <span class="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full">
+                        ARPU: R$ {{ "{:.2f}".format(kpis.arpu) }}
+                    </span>
+                </div>
+            </div>
+            <div class="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center">
+                <i class="fas fa-dollar-sign text-3xl text-green-500"></i>
+            </div>
+        </div>
+        <div class="mt-4 text-xs text-gray-500 border-t pt-2">
+            <i class="fas fa-star text-amber-500 mr-1"></i>
+            {{ kpis.pro_users }} Pro + {{ kpis.agency_users }} Agency
+        </div>
+    </div>
+    
+    <!-- Receita Mensal Asaas -->
+    <div class="bg-gradient-to-br from-emerald-500 to-teal-600 text-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-shadow">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm opacity-90 mb-1">💰 Receita Mensal</p>
+                <p class="text-3xl font-bold">R$ {{ "{:,.2f}".format(kpis.monthly_revenue) if kpis.monthly_revenue is defined else "0,00" }}</p>
+                <div class="mt-2">
+                    <span class="text-xs px-2 py-1 bg-white/20 rounded-full">
+                        Total: R$ {{ "{:,.2f}".format(kpis.total_revenue) if kpis.total_revenue is defined else "0,00" }}
+                    </span>
+                </div>
+            </div>
+            <div class="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center">
+                <i class="fas fa-chart-line text-3xl"></i>
+            </div>
+        </div>
+        <div class="mt-4 text-xs border-t border-white/20 pt-2 opacity-90">
+            <i class="fas fa-credit-card mr-1"></i>
+            <a href="/admin/payments" class="hover:underline font-semibold">Ver Pagamentos →</a>
+        </div>
+    </div>
+    
+    <!-- Fila de Tarefas (Celery Queue) -->
+    <div class="bg-white rounded-lg shadow-lg p-6 border-t-4 border-orange-500 hover:shadow-xl transition-shadow">
+        <div class="flex items-center justify-between">
+            <div>
+                <p class="text-sm text-gray-600 mb-1">Fila de Tarefas</p>
+                <p class="text-3xl font-bold text-gray-800">{{ kpis.pending_tasks }}</p>
+                <div class="mt-2">
+                    <span class="text-xs px-2 py-1 {% if kpis.redis_status == 'connected' %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %} rounded-full">
+                        Redis: {{ kpis.redis_status }}
+                    </span>
+                </div>
+            </div>
+            <div class="w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center">
+                <i class="fas fa-tasks text-3xl text-orange-500"></i>
+            </div>
+        </div>
+        <div class="mt-4 text-xs text-gray-500 border-t pt-2">
+            <i class="fas fa-spinner text-orange-500 mr-1"></i>
+            {{ kpis.active_tasks }} tarefas ativas
+        </div>
+    </div>
+    
+</div>
+
+<!-- Seção de Atividades e Alertas -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+    
+    <!-- Usuários Recentes -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-user-clock mr-2 text-blue-500"></i>
+            Cadastros Recentes
+        </h2>
+        
+        <div class="space-y-3">
+            {% for user in kpis.recent_users %}
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-indigo-500 flex items-center justify-center">
+                        <span class="text-white font-bold text-sm">{{ user.email[0].upper() }}</span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-800">{{ user.email }}</p>
+                        <p class="text-xs text-gray-500">
+                            <i class="far fa-clock mr-1"></i>
+                            {{ user.created_at.strftime('%d/%m/%Y %H:%M') if user.created_at else '-' }}
+                        </p>
+                    </div>
+                </div>
+                <div>
+                    {% if user.plan_status == 'free' %}
+                    <span class="px-2 py-1 text-xs bg-gray-200 text-gray-800 rounded-full">Free</span>
+                    {% elif user.plan_status == 'pro' %}
+                    <span class="px-2 py-1 text-xs bg-amber-100 text-amber-800 rounded-full">Pro</span>
+                    {% elif user.plan_status == 'agency' %}
+                    <span class="px-2 py-1 text-xs bg-purple-100 text-purple-800 rounded-full">Agency</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div class="mt-4">
+            <a href="/admin/users" class="block w-full text-center py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-sm font-semibold">
+                <i class="fas fa-arrow-right mr-2"></i>Ver todos os usuários
+            </a>
+        </div>
+    </div>
+    
+    <!-- Sites com Problemas -->
+    <div class="bg-white rounded-lg shadow-lg p-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+            <i class="fas fa-exclamation-triangle mr-2 text-red-500"></i>
+            Sites com Problemas
+        </h2>
+        
+        <div class="space-y-3">
+            {% for site in kpis.problem_sites %}
+            <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-200">
+                <div class="flex-1">
+                    <p class="text-sm font-semibold text-gray-800">{{ site.domain }}</p>
+                    <div class="flex items-center space-x-2 mt-1">
+                        {% if site.current_status == 'offline' %}
+                        <span class="px-2 py-1 text-xs bg-red-100 text-red-800 rounded-full">
+                            <i class="fas fa-times-circle mr-1"></i>Offline
+                        </span>
+                        {% endif %}
+                        {% if site.ssl_days_remaining and site.ssl_days_remaining < 30 %}
+                        <span class="px-2 py-1 text-xs bg-orange-100 text-orange-800 rounded-full">
+                            <i class="fas fa-shield-alt mr-1"></i>SSL: {{ site.ssl_days_remaining }}d
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <a href="/sites/{{ site.id }}" class="text-blue-600 hover:text-blue-800">
+                    <i class="fas fa-external-link-alt"></i>
+                </a>
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-400">
+                <i class="fas fa-check-circle text-5xl text-green-400 mb-3"></i>
+                <p class="text-sm font-semibold">Nenhum problema detectado!</p>
+                <p class="text-xs">Todos os sites estão operacionais.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    
+</div>
+
+<!-- Distribuição de Planos -->
+<div class="bg-white rounded-lg shadow-lg p-6">
+    <h2 class="text-xl font-bold text-gray-800 mb-4 flex items-center">
+        <i class="fas fa-chart-pie mr-2 text-indigo-500"></i>
+        Distribuição de Planos
+    </h2>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Free -->
+        <div class="text-center">
+            <div class="text-4xl font-bold text-gray-600 mb-2">{{ kpis.free_users }}</div>
+            <div class="text-sm text-gray-600 mb-3">Plano Free</div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+                {% set free_percent = (kpis.free_users / kpis.total_users * 100) if kpis.total_users > 0 else 0 %}
+                <div class="bg-gray-400 h-3 rounded-full transition-all" style="width: {{ "%.1f"|format(free_percent) }}%"></div>
+            </div>
+            <div class="text-xs text-gray-500 mt-2">{{ "%.1f"|format(free_percent) }}% do total</div>
+        </div>
+        
+        <!-- Pro -->
+        <div class="text-center">
+            <div class="text-4xl font-bold text-amber-600 mb-2">{{ kpis.pro_users }}</div>
+            <div class="text-sm text-gray-600 mb-3">Plano Pro (R$ 49/mês)</div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+                {% set pro_percent = (kpis.pro_users / kpis.total_users * 100) if kpis.total_users > 0 else 0 %}
+                <div class="bg-amber-500 h-3 rounded-full transition-all" style="width: {{ "%.1f"|format(pro_percent) }}%"></div>
+            </div>
+            <div class="text-xs text-gray-500 mt-2">{{ "%.1f"|format(pro_percent) }}% do total</div>
+        </div>
+        
+        <!-- Agency -->
+        <div class="text-center">
+            <div class="text-4xl font-bold text-purple-600 mb-2">{{ kpis.agency_users }}</div>
+            <div class="text-sm text-gray-600 mb-3">Plano Agency (R$ 149/mês)</div>
+            <div class="w-full bg-gray-200 rounded-full h-3">
+                {% set agency_percent = (kpis.agency_users / kpis.total_users * 100) if kpis.total_users > 0 else 0 %}
+                <div class="bg-purple-600 h-3 rounded-full transition-all" style="width: {{ "%.1f"|format(agency_percent) }}%"></div>
+            </div>
+            <div class="text-xs text-gray-500 mt-2">{{ "%.1f"|format(agency_percent) }}% do total</div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

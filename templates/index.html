@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SentinelWeb - Monitoramento Inteligente de Sites 24/7</title>
+    <meta name="description" content="Monitoramento de Uptime, SSL, Segurança WordPress e Domínios em tempo real. Alertas instantâneos no Telegram.">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+        .float-animation {
+            animation: float 6s ease-in-out infinite;
+        }
+        
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .pulse-slow {
+            animation: pulse-slow 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+    
+    <!-- Navbar -->
+    <nav class="fixed top-0 w-full bg-slate-900/80 backdrop-blur-md border-b border-slate-700 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logo -->
+                <div class="flex items-center space-x-2">
+                    <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-shield-alt text-xl"></i>
+                    </div>
+                    <span class="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+                        SentinelWeb
+                    </span>
+                </div>
+                
+                <!-- Links Desktop -->
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="#recursos" class="text-slate-300 hover:text-white transition">Recursos</a>
+                    <a href="#precos" class="text-slate-300 hover:text-white transition">Preços</a>
+                    <a href="/login" class="text-slate-300 hover:text-white transition">Login</a>
+                    <a href="/register" class="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 px-6 py-2 rounded-lg font-semibold transition transform hover:scale-105 shadow-lg">
+                        Começar Grátis
+                    </a>
+                </div>
+                
+                <!-- Menu Mobile -->
+                <button class="md:hidden text-slate-300" onclick="toggleMobileMenu()">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile Menu -->
+        <div id="mobileMenu" class="hidden md:hidden bg-slate-800 border-t border-slate-700">
+            <div class="px-4 py-4 space-y-3">
+                <a href="#recursos" class="block text-slate-300 hover:text-white transition">Recursos</a>
+                <a href="#precos" class="block text-slate-300 hover:text-white transition">Preços</a>
+                <a href="/login" class="block text-slate-300 hover:text-white transition">Login</a>
+                <a href="/register" class="block bg-gradient-to-r from-purple-600 to-blue-600 px-6 py-2 rounded-lg font-semibold text-center">
+                    Começar Grátis
+                </a>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Hero Section -->
+    <section class="pt-32 pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        <!-- Background Effects -->
+        <div class="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
+            <div class="absolute top-20 left-10 w-72 h-72 bg-purple-500/10 rounded-full blur-3xl pulse-slow"></div>
+            <div class="absolute bottom-20 right-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pulse-slow" style="animation-delay: 1.5s;"></div>
+        </div>
+        
+        <div class="max-w-7xl mx-auto relative z-10">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <!-- Left Column: Text -->
+                <div class="text-center lg:text-left">
+                    <!-- Badge -->
+                    <div class="inline-flex items-center space-x-2 bg-purple-500/10 border border-purple-500/30 rounded-full px-4 py-2 mb-6">
+                        <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                        <span class="text-sm text-purple-300">Sistema 100% operacional</span>
+                    </div>
+                    
+                    <!-- Headline -->
+                    <h1 class="text-4xl sm:text-5xl lg:text-6xl font-bold mb-6 leading-tight">
+                        Seus sites caem,<br>
+                        seus clientes reclamam.<br>
+                        <span class="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+                            Nós te avisamos antes.
+                        </span>
+                    </h1>
+                    
+                    <!-- Subheadline -->
+                    <p class="text-xl text-slate-300 mb-8 leading-relaxed">
+                        Monitoramento de <strong class="text-white">Uptime</strong>, <strong class="text-white">SSL</strong>, 
+                        <strong class="text-white">Segurança WordPress</strong> e <strong class="text-white">Domínios</strong> em tempo real. 
+                        Receba alertas no <strong class="text-white">Telegram</strong> instantaneamente.
+                    </p>
+                    
+                    <!-- CTA Principal -->
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-8">
+                        <a href="/register" class="group bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 px-8 py-4 rounded-lg font-bold text-lg transition transform hover:scale-105 shadow-2xl">
+                            <i class="fas fa-rocket mr-2 group-hover:translate-x-1 transition-transform"></i>
+                            Monitorar meu primeiro site agora
+                        </a>
+                        <a href="#recursos" class="border-2 border-slate-600 hover:border-slate-500 px-8 py-4 rounded-lg font-semibold text-lg transition">
+                            Ver como funciona
+                        </a>
+                    </div>
+                    
+                    <!-- Social Proof Mini -->
+                    <div class="flex items-center justify-center lg:justify-start space-x-6 text-sm text-slate-400">
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-check-circle text-green-500"></i>
+                            <span>Sem cartão de crédito</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <i class="fas fa-clock text-blue-500"></i>
+                            <span>Setup em 2 minutos</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Right Column: Visual -->
+                <div class="relative float-animation">
+                    <div class="relative bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl shadow-2xl border border-slate-700 overflow-hidden">
+                        <!-- Dashboard Preview Placeholder -->
+                        <div class="aspect-video bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center p-8">
+                            <div class="text-center">
+                                <i class="fas fa-chart-line text-6xl text-slate-600 mb-4"></i>
+                                <p class="text-slate-500 text-sm">Dashboard Preview</p>
+                                <p class="text-slate-600 text-xs mt-2">(Screenshot será adicionado aqui)</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Floating Cards -->
+                        <div class="absolute -top-4 -right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-check-circle"></i>
+                                <span class="font-bold">100% Uptime</span>
+                            </div>
+                        </div>
+                        
+                        <div class="absolute -bottom-4 -left-4 bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg">
+                            <div class="flex items-center space-x-2">
+                                <i class="fas fa-shield-alt"></i>
+                                <span class="font-bold">SSL Válido 90d</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Seção de Dores (Problema) -->
+    <section class="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900/50">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl sm:text-4xl font-bold mb-4">
+                    Você está perdendo dinheiro <span class="text-red-500">agora mesmo</span>
+                </h2>
+                <p class="text-xl text-slate-400">E provavelmente nem sabe disso</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Dor 1 -->
+                <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-8 hover:border-red-500 transition">
+                    <div class="w-16 h-16 bg-red-500/10 rounded-lg flex items-center justify-center mb-6">
+                        <i class="fas fa-bolt text-3xl text-red-500"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">Sites Lentos</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        <strong class="text-red-400">40% dos usuários abandonam</strong> sites que demoram mais de 3 segundos. 
+                        Cada segundo de atraso custa vendas.
+                    </p>
+                </div>
+                
+                <!-- Dor 2 -->
+                <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-8 hover:border-red-500 transition">
+                    <div class="w-16 h-16 bg-red-500/10 rounded-lg flex items-center justify-center mb-6">
+                        <i class="fas fa-exclamation-triangle text-3xl text-red-500"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">SSL Vencido</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        <strong class="text-red-400">Google penaliza</strong> e mostra tela de erro "Não Seguro". 
+                        Sua reputação e SEO vão para o ralo.
+                    </p>
+                </div>
+                
+                <!-- Dor 3 -->
+                <div class="bg-slate-800/50 border border-slate-700 rounded-xl p-8 hover:border-red-500 transition">
+                    <div class="w-16 h-16 bg-red-500/10 rounded-lg flex items-center justify-center mb-6">
+                        <i class="fas fa-bug text-3xl text-red-500"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">Invasões WordPress</h3>
+                    <p class="text-slate-400 leading-relaxed">
+                        <strong class="text-red-400">Arquivos expostos</strong> (wp-config, debug.log) são porta de entrada para hackers. 
+                        Prejuízo garantido.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Seção de Recursos (Solução) -->
+    <section id="recursos" class="py-20 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl sm:text-4xl font-bold mb-4">
+                    Monitoramento <span class="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">completo e automático</span>
+                </h2>
+                <p class="text-xl text-slate-400">Tudo que você precisa para dormir tranquilo</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Recurso 1 -->
+                <div class="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-xl p-8 hover:border-purple-500 transition group">
+                    <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition">
+                        <i class="fas fa-bell text-3xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">Alertas Instantâneos</h3>
+                    <p class="text-slate-400 leading-relaxed mb-4">
+                        Receba notificações via <strong class="text-white">Telegram</strong> e <strong class="text-white">Email</strong> 
+                        no exato momento em que seu site sai do ar ou volta. Sem atrasos.
+                    </p>
+                    <ul class="space-y-2 text-slate-300">
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>Site online/offline</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>SSL expirando</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>Domínio vencendo</li>
+                    </ul>
+                </div>
+                
+                <!-- Recurso 2 -->
+                <div class="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-xl p-8 hover:border-blue-500 transition group">
+                    <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition">
+                        <i class="fab fa-wordpress text-3xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">Raio-X WordPress</h3>
+                    <p class="text-slate-400 leading-relaxed mb-4">
+                        Scanner automatizado detecta <strong class="text-white">versão do WordPress</strong>, 
+                        arquivos expostos e <strong class="text-white">7 tipos de vulnerabilidades</strong> críticas.
+                    </p>
+                    <ul class="space-y-2 text-slate-300">
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>Debug.log exposto</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>wp-config.php backup</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>Enumeração de usuários</li>
+                    </ul>
+                </div>
+                
+                <!-- Recurso 3 -->
+                <div class="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-xl p-8 hover:border-green-500 transition group">
+                    <div class="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition">
+                        <i class="fas fa-shield-alt text-3xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">Segurança de Domínio</h3>
+                    <p class="text-slate-400 leading-relaxed mb-4">
+                        Monitora <strong class="text-white">expiração do Whois</strong> e 
+                        verifica se seu IP está em <strong class="text-white">5 blacklists</strong> (RBL). 
+                        Nunca perca um domínio.
+                    </p>
+                    <ul class="space-y-2 text-slate-300">
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>Data de expiração</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>Blacklist detection</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>Dias restantes</li>
+                    </ul>
+                </div>
+                
+                <!-- Recurso 4 -->
+                <div class="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700 rounded-xl p-8 hover:border-amber-500 transition group">
+                    <div class="w-16 h-16 bg-gradient-to-br from-amber-500 to-orange-500 rounded-lg flex items-center justify-center mb-6 group-hover:scale-110 transition">
+                        <i class="fas fa-chart-line text-3xl"></i>
+                    </div>
+                    <h3 class="text-2xl font-bold mb-4">Status Page Público</h3>
+                    <p class="text-slate-400 leading-relaxed mb-4">
+                        Gere uma <strong class="text-white">página pública</strong> com o status de todos os seus sites. 
+                        Prove para seus clientes que está tudo funcionando.
+                    </p>
+                    <ul class="space-y-2 text-slate-300">
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>URL personalizada</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>Uptime em tempo real</li>
+                        <li><i class="fas fa-check text-green-500 mr-2"></i>Histórico de incidentes</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Social Proof -->
+    <section class="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-purple-900/20 to-blue-900/20 border-y border-slate-700">
+        <div class="max-w-7xl mx-auto text-center">
+            <div class="flex flex-col md:flex-row items-center justify-center space-y-8 md:space-y-0 md:space-x-16">
+                <div>
+                    <div class="text-5xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent mb-2">
+                        +500
+                    </div>
+                    <p class="text-slate-400">Sites Monitorados</p>
+                </div>
+                
+                <div>
+                    <div class="text-5xl font-bold bg-gradient-to-r from-green-400 to-emerald-400 bg-clip-text text-transparent mb-2">
+                        99.9%
+                    </div>
+                    <p class="text-slate-400">Uptime Garantido</p>
+                </div>
+                
+                <div>
+                    <div class="text-5xl font-bold bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent mb-2">
+                        &lt;30s
+                    </div>
+                    <p class="text-slate-400">Tempo de Alerta</p>
+                </div>
+            </div>
+            
+            <p class="text-2xl text-slate-300 mt-12 font-semibold">
+                Confiado por <span class="text-white">agências digitais</span> e <span class="text-white">e-commerces</span> em todo Brasil 🇧🇷
+            </p>
+        </div>
+    </section>
+    
+    <!-- Tabela de Preços -->
+    <section id="precos" class="py-20 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl sm:text-4xl font-bold mb-4">
+                    Preços <span class="bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">simples e transparentes</span>
+                </h2>
+                <p class="text-xl text-slate-400">Comece grátis. Cancele quando quiser.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Plano Free -->
+                <div class="bg-slate-800 border-2 border-slate-700 rounded-2xl p-8 hover:border-slate-600 transition">
+                    <h3 class="text-2xl font-bold mb-2">Free</h3>
+                    <p class="text-slate-400 mb-6">Para testar o sistema</p>
+                    
+                    <div class="mb-6">
+                        <span class="text-5xl font-bold">R$ {{ "%.0f"|format(plan_free_price) }}</span>
+                        <span class="text-slate-400">/mês</span>
+                    </div>
+                    
+                    <ul class="space-y-4 mb-8">
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-500 mr-3 mt-1"></i>
+                            <span class="text-slate-300">1 site monitorado</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-500 mr-3 mt-1"></i>
+                            <span class="text-slate-300">Check a cada 10 minutos</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-500 mr-3 mt-1"></i>
+                            <span class="text-slate-300">Alertas por email</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-times text-slate-600 mr-3 mt-1"></i>
+                            <span class="text-slate-500">Telegram</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-times text-slate-600 mr-3 mt-1"></i>
+                            <span class="text-slate-500">WordPress Scanner</span>
+                        </li>
+                    </ul>
+                    
+                    <a href="/register" class="block w-full bg-slate-700 hover:bg-slate-600 text-center py-3 rounded-lg font-semibold transition">
+                        Começar Grátis
+                    </a>
+                </div>
+                
+                <!-- Plano Pro (Destaque) -->
+                <div class="bg-gradient-to-br from-purple-600 to-blue-600 border-2 border-purple-500 rounded-2xl p-8 transform scale-105 shadow-2xl relative">
+                    <!-- Badge Destaque -->
+                    <div class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-amber-500 text-slate-900 px-4 py-1 rounded-full text-sm font-bold">
+                        MAIS POPULAR
+                    </div>
+                    
+                    <h3 class="text-2xl font-bold mb-2">Pro</h3>
+                    <p class="text-purple-100 mb-6">Para profissionais</p>
+                    
+                    <div class="mb-6">
+                        <span class="text-5xl font-bold">R$ {{ "%.0f"|format(plan_pro_price) }}</span>
+                        <span class="text-purple-100">/mês</span>
+                    </div>
+                    
+                    <ul class="space-y-4 mb-8">
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-white mr-3 mt-1"></i>
+                            <span class="text-white font-semibold">20 sites monitorados</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-white mr-3 mt-1"></i>
+                            <span class="text-white font-semibold">Check a cada 1 minuto</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-white mr-3 mt-1"></i>
+                            <span class="text-white font-semibold">Alertas Telegram</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-white mr-3 mt-1"></i>
+                            <span class="text-white font-semibold">WordPress Scanner</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-white mr-3 mt-1"></i>
+                            <span class="text-white font-semibold">Blacklist Detection</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-white mr-3 mt-1"></i>
+                            <span class="text-white font-semibold">Status Page</span>
+                        </li>
+                    </ul>
+                    
+                    <a href="/register" class="block w-full bg-white text-purple-600 hover:bg-purple-50 text-center py-3 rounded-lg font-bold transition">
+                        Assinar Agora
+                    </a>
+                </div>
+                
+                <!-- Plano Agency -->
+                <div class="bg-slate-800 border-2 border-slate-700 rounded-2xl p-8 hover:border-slate-600 transition">
+                    <h3 class="text-2xl font-bold mb-2">Agency</h3>
+                    <p class="text-slate-400 mb-6">Para agências</p>
+                    
+                    <div class="mb-6">
+                        <span class="text-5xl font-bold">R$ {{ "%.0f"|format(plan_agency_price) }}</span>
+                        <span class="text-slate-400">/mês</span>
+                    </div>
+                    
+                    <ul class="space-y-4 mb-8">
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-500 mr-3 mt-1"></i>
+                            <span class="text-slate-300 font-semibold">100 sites monitorados</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-500 mr-3 mt-1"></i>
+                            <span class="text-slate-300">Check a cada 30 segundos</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-500 mr-3 mt-1"></i>
+                            <span class="text-slate-300">Todos os recursos Pro</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-500 mr-3 mt-1"></i>
+                            <span class="text-slate-300 font-semibold">White Label</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-500 mr-3 mt-1"></i>
+                            <span class="text-slate-300 font-semibold">API Access</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-green-500 mr-3 mt-1"></i>
+                            <span class="text-slate-300 font-semibold">Suporte prioritário</span>
+                        </li>
+                    </ul>
+                    
+                    <a href="/register" class="block w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-center py-3 rounded-lg font-semibold transition">
+                        Falar com Vendas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <!-- CTA Final -->
+    <section class="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-purple-900/30 to-blue-900/30">
+        <div class="max-w-4xl mx-auto text-center">
+            <h2 class="text-3xl sm:text-5xl font-bold mb-6">
+                Pronto para nunca mais perder um cliente por site fora do ar?
+            </h2>
+            <p class="text-xl text-slate-300 mb-8">
+                Cadastre-se gratuitamente em menos de 2 minutos. Sem cartão de crédito.
+            </p>
+            
+            <a href="/register" class="inline-block bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 px-12 py-5 rounded-lg font-bold text-xl transition transform hover:scale-105 shadow-2xl">
+                <i class="fas fa-rocket mr-2"></i>
+                Começar Agora - É Grátis
+            </a>
+            
+            <p class="text-slate-500 mt-6 text-sm">
+                ✓ Sem compromisso &nbsp; • &nbsp; ✓ Cancele quando quiser &nbsp; • &nbsp; ✓ Suporte em português
+            </p>
+        </div>
+    </section>
+    
+    <!-- Footer -->
+    <footer class="bg-slate-900 border-t border-slate-800 py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-7xl mx-auto">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+                <!-- Coluna 1: Logo e descrição -->
+                <div class="col-span-1 md:col-span-2">
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-shield-alt text-xl"></i>
+                        </div>
+                        <span class="text-2xl font-bold bg-gradient-to-r from-purple-400 to-blue-400 bg-clip-text text-transparent">
+                            SentinelWeb
+                        </span>
+                    </div>
+                    <p class="text-slate-400 mb-4">
+                        Monitoramento inteligente de sites 24/7.<br>
+                        Proteja seu negócio com alertas em tempo real.
+                    </p>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-slate-400 hover:text-white transition">
+                            <i class="fab fa-twitter text-xl"></i>
+                        </a>
+                        <a href="#" class="text-slate-400 hover:text-white transition">
+                            <i class="fab fa-github text-xl"></i>
+                        </a>
+                        <a href="#" class="text-slate-400 hover:text-white transition">
+                            <i class="fab fa-linkedin text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Coluna 2: Produto -->
+                <div>
+                    <h4 class="font-bold mb-4">Produto</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#recursos" class="text-slate-400 hover:text-white transition">Recursos</a></li>
+                        <li><a href="#precos" class="text-slate-400 hover:text-white transition">Preços</a></li>
+                        <li><a href="/status/1" class="text-slate-400 hover:text-white transition">Status Page</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white transition">Documentação</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Coluna 3: Empresa -->
+                <div>
+                    <h4 class="font-bold mb-4">Empresa</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-slate-400 hover:text-white transition">Sobre</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white transition">Blog</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white transition">Contato</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white transition">Termos de Uso</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="border-t border-slate-800 pt-8 text-center text-slate-500">
+                <p>&copy; 2025 SentinelWeb. Todos os direitos reservados.</p>
+                <p class="mt-2 text-sm">Desenvolvido com <i class="fas fa-heart text-red-500"></i> para proteger seu negócio online.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        }
+        
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                    // Fecha o menu mobile se estiver aberto
+                    const menu = document.getElementById('mobileMenu');
+                    menu.classList.add('hidden');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
