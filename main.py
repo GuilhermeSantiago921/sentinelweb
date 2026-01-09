@@ -627,41 +627,58 @@ async def dashboard(
     """Dashboard principal com lista de sites"""
     from plan_limits import get_usage_stats
     
-    # Busca sites do usuário
-    sites = db.query(Site).filter(Site.owner_id == user.id).order_by(Site.domain).all()
-    
-    # Calcula estatísticas
-    total_sites = len(sites)
-    sites_online = sum(1 for s in sites if s.current_status == "online")
-    sites_offline = sum(1 for s in sites if s.current_status == "offline")
-    sites_unknown = total_sites - sites_online - sites_offline
-    
-    # Sites com SSL expirando em 30 dias
-    ssl_expiring = sum(1 for s in sites if s.ssl_days_remaining and s.ssl_days_remaining < 30)
-    
-    # Sites com portas abertas
-    sites_with_ports = sum(1 for s in sites if s.open_ports)
-    
-    stats = {
-        "total": total_sites,
-        "online": sites_online,
-        "offline": sites_offline,
-        "unknown": sites_unknown,
-        "ssl_expiring": ssl_expiring,
-        "open_ports": sites_with_ports
-    }
-    
-    # Estatísticas de uso do plano
-    plan_usage = get_usage_stats(user, db)
-    
-    return templates.TemplateResponse("dashboard.html", {
-        "request": request,
-        "user": user,
-        "sites": sites,
-        "stats": stats,
-        "plan_usage": plan_usage,
-        "now": datetime.utcnow
-    })
+    try:
+        # Garante que o usuário tem um plan_status válido
+        if not user.plan_status or user.plan_status not in ['free', 'pro', 'agency']:
+            user.plan_status = 'free'
+            db.commit()
+        
+        # Busca sites do usuário
+        sites = db.query(Site).filter(Site.owner_id == user.id).order_by(Site.domain).all()
+        
+        # Calcula estatísticas
+        total_sites = len(sites)
+        sites_online = sum(1 for s in sites if s.current_status == "online")
+        sites_offline = sum(1 for s in sites if s.current_status == "offline")
+        sites_unknown = total_sites - sites_online - sites_offline
+        
+        # Sites com SSL expirando em 30 dias
+        ssl_expiring = sum(1 for s in sites if s.ssl_days_remaining and s.ssl_days_remaining < 30)
+        
+        # Sites com portas abertas
+        sites_with_ports = sum(1 for s in sites if s.open_ports)
+        
+        stats = {
+            "total": total_sites,
+            "online": sites_online,
+            "offline": sites_offline,
+            "unknown": sites_unknown,
+            "ssl_expiring": ssl_expiring,
+            "open_ports": sites_with_ports
+        }
+        
+        # Estatísticas de uso do plano
+        plan_usage = get_usage_stats(user, db)
+        
+        return templates.TemplateResponse("dashboard.html", {
+            "request": request,
+            "user": user,
+            "sites": sites,
+            "stats": stats,
+            "plan_usage": plan_usage,
+            "now": datetime.utcnow
+        })
+    except Exception as e:
+        # Log do erro para debug
+        import traceback
+        print(f"ERRO NO DASHBOARD: {str(e)}")
+        print(traceback.format_exc())
+        
+        # Retorna erro mais informativo
+        raise HTTPException(
+            status_code=500,
+            detail=f"Erro ao carregar dashboard: {str(e)}"
+        )
 
 
 @app.get("/sites/add", response_class=HTMLResponse)
