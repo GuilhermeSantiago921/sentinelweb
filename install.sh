@@ -98,6 +98,72 @@ check_ubuntu() {
     log_success "Sistema detectado: Ubuntu $VERSION_ID"
 }
 
+check_disk_space() {
+    # Verificar espaço em disco (mínimo 10GB livres)
+    AVAILABLE_SPACE=$(df / | tail -1 | awk '{print $4}')
+    REQUIRED_SPACE=10485760  # 10GB em KB
+    
+    if [ "$AVAILABLE_SPACE" -lt "$REQUIRED_SPACE" ]; then
+        log_error "Espaço em disco insuficiente!"
+        log_info "Disponível: $(($AVAILABLE_SPACE / 1024 / 1024))GB"
+        log_info "Necessário: 10GB (recomendado 20GB)"
+        exit 1
+    fi
+    
+    log_success "Espaço em disco: $(($AVAILABLE_SPACE / 1024 / 1024))GB disponível"
+}
+
+check_memory() {
+    # Verificar RAM (mínimo 1.5GB)
+    TOTAL_MEM=$(free -m | awk '/^Mem:/{print $2}')
+    REQUIRED_MEM=1536  # 1.5GB em MB
+    
+    if [ "$TOTAL_MEM" -lt "$REQUIRED_MEM" ]; then
+        log_warning "RAM abaixo do recomendado!"
+        log_info "Disponível: ${TOTAL_MEM}MB"
+        log_info "Recomendado: 2048MB (2GB)"
+        log_warning "A instalação pode falhar ou ser lenta"
+        
+        if ! confirm "Deseja continuar mesmo assim?"; then
+            exit 1
+        fi
+    else
+        log_success "RAM: ${TOTAL_MEM}MB"
+    fi
+}
+
+check_ports() {
+    # Verificar se portas necessárias estão livres
+    PORTS_IN_USE=""
+    
+    if netstat -tuln 2>/dev/null | grep -q ":80 "; then
+        PORTS_IN_USE="$PORTS_IN_USE 80"
+    fi
+    
+    if netstat -tuln 2>/dev/null | grep -q ":443 "; then
+        PORTS_IN_USE="$PORTS_IN_USE 443"
+    fi
+    
+    if netstat -tuln 2>/dev/null | grep -q ":5432 "; then
+        PORTS_IN_USE="$PORTS_IN_USE 5432"
+    fi
+    
+    if netstat -tuln 2>/dev/null | grep -q ":6379 "; then
+        PORTS_IN_USE="$PORTS_IN_USE 6379"
+    fi
+    
+    if [ -n "$PORTS_IN_USE" ]; then
+        log_warning "Portas já em uso:$PORTS_IN_USE"
+        log_info "Isso pode indicar que outro serviço está rodando"
+        
+        if ! confirm "Deseja continuar mesmo assim?"; then
+            exit 1
+        fi
+    else
+        log_success "Portas necessárias estão livres"
+    fi
+}
+
 ################################################################################
 # VERIFICAÇÕES INICIAIS
 ################################################################################
@@ -108,6 +174,9 @@ log_step 0 $TOTAL_STEPS "Verificações Iniciais"
 
 check_root
 check_ubuntu
+check_disk_space
+check_memory
+check_ports
 
 # Detectar usuário que executou sudo
 if [ -n "${SUDO_USER:-}" ]; then
@@ -396,6 +465,15 @@ log_step 8 $TOTAL_STEPS "Baixando Aplicação do GitHub"
 
 GITHUB_REPO="https://github.com/GuilhermeSantiago921/sentinelweb.git"
 
+# Verificar conectividade com GitHub
+log_info "Verificando conectividade com GitHub..."
+if ! curl -s --connect-timeout 10 https://github.com > /dev/null; then
+    log_error "Não foi possível conectar ao GitHub!"
+    log_info "Verifique sua conexão com a internet"
+    exit 1
+fi
+log_success "Conexão com GitHub OK!"
+
 # Verificar se o diretório já existe e tem conteúdo
 if [ -d "$INSTALL_DIR" ] && [ "$(ls -A $INSTALL_DIR 2>/dev/null)" ]; then
     log_warning "Diretório $INSTALL_DIR já existe com conteúdo"
@@ -516,9 +594,27 @@ if [ "$USE_DOMAIN" = "1" ]; then
         exit 1
     fi
     
+    # Remover espaços do domínio
+    APP_DOMAIN=$(echo "$APP_DOMAIN" | tr -d '[:space:]')
+    
+    # Validar formato básico do domínio
+    if ! echo "$APP_DOMAIN" | grep -qE '^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$'; then
+        log_error "Domínio inválido! Use o formato: exemplo.com.br"
+        exit 1
+    fi
+    
     # Validar email
     if [ -z "$ADMIN_EMAIL" ]; then
         log_error "Email não pode estar vazio!"
+        exit 1
+    fi
+    
+    # Remover espaços do email
+    ADMIN_EMAIL=$(echo "$ADMIN_EMAIL" | tr -d '[:space:]')
+    
+    # Validar formato do email
+    if ! echo "$ADMIN_EMAIL" | grep -qE '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'; then
+        log_error "Email inválido! Use o formato: usuario@dominio.com"
         exit 1
     fi
     
@@ -533,14 +629,27 @@ else
     echo ""
     
     # Detectar IP público automaticamente
-    SERVER_IP=$(curl -4 -s ifconfig.me || curl -4 -s icanhazip.com || echo "IP_NAO_DETECTADO")
+    log_info "Detectando IP público do servidor..."
+    SERVER_IP=$(curl -4 -s --connect-timeout 5 ifconfig.me 2>/dev/null || curl -4 -s --connect-timeout 5 icanhazip.com 2>/dev/null || echo "")
     
-    log_info "IP público detectado: $SERVER_IP"
+    if [ -z "$SERVER_IP" ]; then
+        log_warning "Não foi possível detectar o IP público automaticamente"
+        SERVER_IP="SEU_IP_AQUI"
+    else
+        log_info "IP público detectado: $SERVER_IP"
+    fi
+    
     echo ""
     read -p "$(echo -e ${CYAN}'Confirme ou corrija o IP do servidor: '${NC})" -i "$SERVER_IP" -e CONFIRMED_IP
     
     if [ -z "$CONFIRMED_IP" ]; then
         CONFIRMED_IP=$SERVER_IP
+    fi
+    
+    # Validar formato do IP (básico)
+    if ! echo "$CONFIRMED_IP" | grep -qE '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$'; then
+        log_error "IP inválido! Use o formato: 192.168.1.1"
+        exit 1
     fi
     
     APP_DOMAIN=$CONFIRMED_IP
@@ -832,7 +941,29 @@ else
     log_info "Obtendo certificado SSL para $APP_DOMAIN..."
     log_warning "Certifique-se de que o domínio aponta para este servidor!"
     
-    if confirm "Deseja obter o certificado SSL agora?"; then
+    # Verificar DNS antes de obter certificado
+    log_info "Verificando DNS do domínio..."
+    DOMAIN_IP=$(dig +short $APP_DOMAIN | tail -n1)
+    SERVER_IP=$(curl -4 -s --connect-timeout 5 ifconfig.me 2>/dev/null)
+    
+    if [ -n "$DOMAIN_IP" ] && [ -n "$SERVER_IP" ]; then
+        if [ "$DOMAIN_IP" = "$SERVER_IP" ]; then
+            log_success "DNS configurado corretamente! $APP_DOMAIN -> $SERVER_IP"
+        else
+            log_warning "DNS pode não estar configurado corretamente!"
+            log_info "Domínio aponta para: $DOMAIN_IP"
+            log_info "IP do servidor: $SERVER_IP"
+            
+            if ! confirm "Deseja tentar obter o certificado SSL mesmo assim?"; then
+                log_warning "Certificado SSL não obtido. Configure o DNS primeiro."
+                SSL_OBTAINED=false
+            fi
+        fi
+    else
+        log_warning "Não foi possível verificar DNS automaticamente"
+    fi
+    
+    if [ "$SSL_OBTAINED" != false ] && confirm "Deseja obter o certificado SSL agora?"; then
         if certbot certonly \
             --webroot \
             -w /var/www/certbot \
@@ -911,11 +1042,30 @@ cd $INSTALL_DIR
 
 log_info "Construindo imagens Docker (isso pode demorar)..."
 
+# Verificar se docker-compose.prod.yml existe
+if [ ! -f "docker-compose.prod.yml" ]; then
+    log_error "Arquivo docker-compose.prod.yml não encontrado!"
+    log_info "Arquivos disponíveis: $(ls -la)"
+    exit 1
+fi
+
+# Verificar se Dockerfile.prod existe
+if [ ! -f "Dockerfile.prod" ]; then
+    log_error "Arquivo Dockerfile.prod não encontrado!"
+    log_info "Arquivos disponíveis: $(ls -la)"
+    exit 1
+fi
+
 # Usar sg para forçar carregamento do grupo docker
 if sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml build"; then
     log_success "Imagens Docker construídas!"
 else
     log_error "Falha ao construir imagens Docker!"
+    log_info "Verifique os logs acima para mais detalhes"
+    log_info "Possíveis causas:"
+    log_info "  • Erro de sintaxe no Dockerfile"
+    log_info "  • Falta de dependências"
+    log_info "  • Problemas de conectividade"
     exit 1
 fi
 
@@ -925,15 +1075,48 @@ fi
 
 log_step 16 $TOTAL_STEPS "Iniciando Containers"
 
+# Verificar se já existem containers rodando
+EXISTING_CONTAINERS=$(sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml ps -q" 2>/dev/null | wc -l)
+
+if [ "$EXISTING_CONTAINERS" -gt 0 ]; then
+    log_warning "Containers já existentes detectados"
+    if confirm "Deseja parar e recriar os containers?"; then
+        log_info "Parando containers existentes..."
+        sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml down"
+    else
+        log_info "Mantendo containers existentes"
+    fi
+fi
+
 log_info "Iniciando containers em background..."
 
 # Usar sg para forçar carregamento do grupo docker
 if sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml up -d"; then
     log_success "Containers iniciados!"
     
-    # Aguardar containers ficarem saudáveis
-    log_info "Aguardando containers ficarem saudáveis (30s)..."
-    sleep 30
+    # Aguardar containers ficarem saudáveis com timeout
+    log_info "Aguardando containers ficarem saudáveis (pode demorar até 60s)..."
+    
+    WAIT_TIME=0
+    MAX_WAIT=60
+    while [ $WAIT_TIME -lt $MAX_WAIT ]; do
+        # Verificar se jq está disponível
+        if command -v jq &> /dev/null; then
+            HEALTHY=$(sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml ps --format json" 2>/dev/null | jq -r '.[].Health' 2>/dev/null | grep -c "healthy" || echo "0")
+        else
+            # Fallback: contar linhas com "healthy" no output
+            HEALTHY=$(sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml ps" 2>/dev/null | grep -c "healthy" || echo "0")
+        fi
+        
+        if [ "$HEALTHY" -ge 3 ]; then
+            log_success "Containers saudáveis!"
+            break
+        fi
+        
+        sleep 5
+        WAIT_TIME=$((WAIT_TIME + 5))
+        log_info "Aguardando... (${WAIT_TIME}s/${MAX_WAIT}s)"
+    done
     
     # Mostrar status
     sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml ps"
@@ -968,15 +1151,20 @@ if [ -f "$INSTALL_DIR/sentinelweb.db" ]; then
 else
     log_info "Nenhum banco SQLite encontrado - criando banco PostgreSQL..."
     
-    # Criar tabelas
-    sg docker -c 'sudo -u sentinelweb docker compose -f docker-compose.prod.yml exec -T web python -c "
+    # Criar tabelas com verificação de erro
+    if sg docker -c 'sudo -u sentinelweb docker compose -f docker-compose.prod.yml exec -T web python -c "
 from database import engine, Base
-from models import User, Site, SiteCheck, HeartbeatCheck, HeartbeatPing, Payment, SystemConfig
+from models import User, Site, MonitorLog, HeartbeatCheck, SystemConfig, Payment
 Base.metadata.create_all(bind=engine)
 print(\"Tabelas criadas com sucesso!\")
-"'
-    
-    log_success "Banco de dados inicializado!"
+"'; then
+        log_success "Banco de dados inicializado!"
+    else
+        log_error "Falha ao criar tabelas do banco de dados!"
+        log_warning "Verifique se o container web está rodando:"
+        log_info "  docker compose -f docker-compose.prod.yml logs web"
+        exit 1
+    fi
 fi
 
 ################################################################################
@@ -1018,21 +1206,53 @@ RETENTION_DAYS=30
 # Criar diretório de backup
 mkdir -p $BACKUP_DIR
 
-# Backup do PostgreSQL
-docker exec sentinelweb_db_prod pg_dump -U sentinelweb sentinelweb | gzip > $BACKUP_DIR/postgres_$DATE.sql.gz
+# Verificar se container PostgreSQL está rodando
+if ! docker ps | grep -q "sentinelweb_db_prod"; then
+    echo "[$(date)] ERRO: Container PostgreSQL não está rodando!"
+    exit 1
+fi
+
+# Backup do PostgreSQL com verificação de erro
+if docker exec sentinelweb_db_prod pg_dump -U sentinelweb sentinelweb | gzip > $BACKUP_DIR/postgres_$DATE.sql.gz; then
+    echo "[$(date)] Backup PostgreSQL: OK - $BACKUP_DIR/postgres_$DATE.sql.gz"
+else
+    echo "[$(date)] ERRO: Falha no backup do PostgreSQL!"
+    exit 1
+fi
+
+# Verificar se o arquivo de backup foi criado e não está vazio
+if [ ! -s "$BACKUP_DIR/postgres_$DATE.sql.gz" ]; then
+    echo "[$(date)] ERRO: Arquivo de backup vazio ou não criado!"
+    rm -f "$BACKUP_DIR/postgres_$DATE.sql.gz"
+    exit 1
+fi
 
 # Backup dos arquivos da aplicação
-tar -czf $BACKUP_DIR/app_$DATE.tar.gz \
+if tar -czf $BACKUP_DIR/app_$DATE.tar.gz \
     --exclude='__pycache__' \
     --exclude='*.pyc' \
     --exclude='venv' \
-    /opt/sentinelweb
+    --exclude='node_modules' \
+    --exclude='.git' \
+    /opt/sentinelweb 2>/dev/null; then
+    echo "[$(date)] Backup aplicação: OK - $BACKUP_DIR/app_$DATE.tar.gz"
+else
+    echo "[$(date)] AVISO: Falha no backup da aplicação (não crítico)"
+fi
 
 # Remover backups antigos
-find $BACKUP_DIR -name "postgres_*.sql.gz" -mtime +$RETENTION_DAYS -delete
-find $BACKUP_DIR -name "app_*.tar.gz" -mtime +$RETENTION_DAYS -delete
+REMOVED_DB=$(find $BACKUP_DIR -name "postgres_*.sql.gz" -mtime +$RETENTION_DAYS -delete -print | wc -l)
+REMOVED_APP=$(find $BACKUP_DIR -name "app_*.tar.gz" -mtime +$RETENTION_DAYS -delete -print | wc -l)
 
-echo "[$(date)] Backup concluído: $BACKUP_DIR/postgres_$DATE.sql.gz"
+if [ "$REMOVED_DB" -gt 0 ] || [ "$REMOVED_APP" -gt 0 ]; then
+    echo "[$(date)] Backups antigos removidos: $REMOVED_DB DB, $REMOVED_APP APP"
+fi
+
+# Mostrar espaço usado
+TOTAL_SIZE=$(du -sh $BACKUP_DIR | cut -f1)
+echo "[$(date)] Espaço total de backups: $TOTAL_SIZE"
+
+echo "[$(date)] Backup concluído com sucesso!"
 EOF
 
 chmod +x $BACKUP_SCRIPT
@@ -1081,11 +1301,19 @@ sg docker -c "sudo -u sentinelweb docker compose -f docker-compose.prod.yml ps"
 # Verificar endpoint de saúde
 log_info "Testando endpoint de saúde..."
 sleep 5
-if curl -s http://localhost:8000/health | jq . > /dev/null 2>&1; then
+
+HEALTH_CHECK=$(curl -s http://localhost:8000/health 2>/dev/null)
+if [ -n "$HEALTH_CHECK" ]; then
     log_success "Endpoint /health: FUNCIONANDO"
-    curl -s http://localhost:8000/health | jq .
+    # Usar jq se disponível, senão mostrar texto bruto
+    if command -v jq &> /dev/null; then
+        echo "$HEALTH_CHECK" | jq .
+    else
+        echo "$HEALTH_CHECK"
+    fi
 else
     log_warning "Endpoint /health: NÃO RESPONDENDO (pode demorar mais alguns segundos)"
+    log_info "Verifique os logs: docker compose -f docker-compose.prod.yml logs -f web"
 fi
 
 ################################################################################
