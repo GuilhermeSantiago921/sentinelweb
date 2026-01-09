@@ -464,6 +464,73 @@ ssh root@SEU_IP
 docker ps
 ```
 
+### Problema: Erro de autenticação PostgreSQL
+
+**Erro:**
+```
+FATAL: password authentication failed for user "sentinelweb"
+```
+
+**⚠️ CAUSA RAIZ (IMPORTANTE):**
+
+O PostgreSQL Docker **só lê a variável POSTGRES_PASSWORD na PRIMEIRA inicialização**. 
+Se você alterou a senha no `.env` depois que o container já foi criado, o banco continua com a senha antiga!
+
+Isso acontece porque:
+1. O PostgreSQL armazena a senha no volume `sentinelweb_postgres_data`
+2. Na segunda execução, ele detecta que já existe um banco e IGNORA as variáveis de ambiente
+3. Você vê nos logs: `PostgreSQL Database directory appears to contain a database; Skipping initialization`
+
+**🚀 SOLUÇÃO RÁPIDA (Recomendada):**
+
+Use o script de reinstalação rápida:
+```bash
+cd /opt/sentinelweb
+sudo bash reinstall_quick.sh
+```
+
+Este script automaticamente:
+- Para todos os containers
+- Remove os volumes (apaga dados!)
+- Gera nova senha
+- Recria tudo do zero
+
+**🔧 SOLUÇÃO MANUAL:**
+
+```bash
+cd /opt/sentinelweb
+
+# 1. Parar tudo e remover volumes (APAGA DADOS!)
+docker compose -f docker-compose.prod.yml down -v
+docker volume rm sentinelweb_postgres_data 2>/dev/null || true
+
+# 2. Gerar nova senha (apenas caracteres alfanuméricos)
+NEW_PASS=$(openssl rand -hex 16)
+echo "Nova senha: $NEW_PASS"
+
+# 3. Atualizar TODAS as ocorrências no .env
+sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$NEW_PASS/" .env
+sed -i "s|^DATABASE_URL=.*|DATABASE_URL=postgresql://sentinelweb:$NEW_PASS@db:5432/sentinelweb|" .env
+
+# 4. Recriar containers
+docker compose -f docker-compose.prod.yml up -d
+
+# 5. Aguardar PostgreSQL inicializar (importante!)
+sleep 30
+
+# 6. Testar conexão
+docker compose -f docker-compose.prod.yml exec db psql -U sentinelweb -d sentinelweb -c "SELECT 'OK';"
+
+# 7. Criar superusuário novamente
+docker compose -f docker-compose.prod.yml exec web python create_superuser.py
+```
+
+**📋 VERIFICAR SE DEU CERTO:**
+```bash
+# Se aparecer "OK", está funcionando!
+docker compose -f docker-compose.prod.yml exec db psql -U sentinelweb -d sentinelweb -c "SELECT 'CONEXAO_OK';"
+```
+
 ### Problema: Erro de migração de banco
 
 **Solução:**
@@ -496,6 +563,78 @@ netstat -tulpn | grep -E ':(80|443)'
 # Reiniciar
 systemctl restart nginx
 ```
+
+### Problema: 502 Bad Gateway (Nginx)
+
+**Erro:** Página mostra "502 Bad Gateway" ao acessar o domínio
+
+**Causa:** Nginx não consegue se comunicar com a aplicação FastAPI na porta 8000.
+
+**Diagnóstico Rápido:**
+```bash
+cd /opt/sentinelweb
+
+# Verificar status dos containers
+docker compose -f docker-compose.prod.yml ps
+
+# Ver logs do container web
+docker compose -f docker-compose.prod.yml logs --tail=50 web
+
+# Testar se porta 8000 responde
+curl http://localhost:8000/health
+```
+
+**Solução Completa:**
+```bash
+cd /opt/sentinelweb
+
+# Parar containers
+docker compose -f docker-compose.prod.yml down -v
+
+# Resetar PostgreSQL e gerar nova senha
+NEW_PASS=$(openssl rand -base64 32 | tr -d '/+=' | head -c 32)
+echo "Nova senha PostgreSQL: $NEW_PASS"
+sed -i "s/^POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$NEW_PASS/" .env
+sed -i "s|^DATABASE_URL=.*|DATABASE_URL=postgresql://sentinelweb:$NEW_PASS@db:5432/sentinelweb|" .env
+
+# Recriar containers
+docker compose -f docker-compose.prod.yml up -d
+
+# Aguardar 40 segundos
+sleep 40
+
+# Verificar status
+docker compose -f docker-compose.prod.yml ps
+
+# Testar aplicação
+curl http://localhost:8000/health
+
+# Reiniciar Nginx
+systemctl restart nginx
+
+# Testar HTTPS
+curl -I https://seudominio.com.br
+```
+
+**Se ainda não funcionar:**
+```bash
+# Rebuild completo sem cache
+docker compose -f docker-compose.prod.yml build --no-cache
+docker compose -f docker-compose.prod.yml up -d
+
+# Aguardar 60 segundos
+sleep 60
+
+# Ver logs detalhados
+docker compose -f docker-compose.prod.yml logs -f web
+```
+
+**Verificar logs do Nginx:**
+```bash
+tail -50 /var/log/nginx/error.log
+```
+
+Veja `FIX_502_ERROR.md` para diagnóstico detalhado.
 
 ### Problema: Firewall bloqueou SSH
 
