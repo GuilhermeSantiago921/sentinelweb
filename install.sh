@@ -447,6 +447,10 @@ fi
 if [ -d "$INSTALL_DIR/.git" ]; then
     log_info "Atualizando repositório existente..."
     cd $INSTALL_DIR
+    
+    # Corrigir problema de ownership do Git
+    git config --global --add safe.directory $INSTALL_DIR 2>/dev/null || true
+    
     git fetch origin
     git reset --hard origin/main
     log_success "Repositório atualizado!"
