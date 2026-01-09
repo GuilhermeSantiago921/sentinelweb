@@ -415,13 +415,21 @@ else
     log_info "Clonando repositório do GitHub: $GITHUB_REPO"
     log_info "Destino: $INSTALL_DIR"
     
-    # Remover diretório vazio se existir
-    [ -d "$INSTALL_DIR" ] && rmdir $INSTALL_DIR 2>/dev/null || true
+    # Garantir que o diretório pai existe
+    mkdir -p $(dirname $INSTALL_DIR)
     
-    # Clonar como usuário sentinelweb
-    sudo -u sentinelweb git clone $GITHUB_REPO $INSTALL_DIR
+    # Remover diretório se existir (mesmo que não esteja vazio)
+    if [ -d "$INSTALL_DIR" ]; then
+        log_info "Removendo diretório existente..."
+        rm -rf $INSTALL_DIR
+    fi
+    
+    # Clonar como root primeiro, depois ajustar permissões
+    git clone $GITHUB_REPO $INSTALL_DIR
     
     if [ $? -eq 0 ]; then
+        # Ajustar ownership para o usuário sentinelweb
+        chown -R sentinelweb:sentinelweb $INSTALL_DIR
         log_success "Repositório clonado com sucesso!"
     else
         log_error "Falha ao clonar repositório do GitHub!"
