@@ -118,10 +118,10 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 # SECURITY HARDENING
 # ========================================
 
-# Remove ferramentas desnecessárias que podem ser exploited
-RUN apt-get purge -y wget && \
-    apt-get autoremove -y && \
-    rm -rf /tmp/* /var/tmp/*
+# Limpar arquivos temporários e cache
+RUN apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # Define permissões restritas
 RUN chmod -R 755 /app && \
