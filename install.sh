@@ -607,34 +607,47 @@ else
 fi
 
 ################################################################################
-# PASSO 13: CONFIGURAR NGINX
+# PASSO 13: CONFIGURAR NGINX (HTTP TEMPORÁRIO)
 ################################################################################
 
-log_step 13 $TOTAL_STEPS "Configurando Nginx"
+log_step 13 $TOTAL_STEPS "Configurando Nginx (HTTP temporário)"
 
 NGINX_CONFIG="/etc/nginx/sites-available/sentinelweb"
 NGINX_ENABLED="/etc/nginx/sites-enabled/sentinelweb"
 
-log_info "Criando configuração do Nginx..."
+log_info "Criando configuração temporária HTTP (para obter SSL)..."
 
 # Backup da configuração antiga se existir
 if [ -f "$NGINX_CONFIG" ]; then
     cp $NGINX_CONFIG ${NGINX_CONFIG}.backup.$(date +%Y%m%d_%H%M%S)
 fi
 
-# Copiar configuração do template
-if [ -f "$INSTALL_DIR/nginx-sentinelweb.conf" ]; then
-    cp $INSTALL_DIR/nginx-sentinelweb.conf $NGINX_CONFIG
+# Criar configuração temporária HTTP-only para Certbot
+cat > $NGINX_CONFIG << EOF
+# Configuração temporária para obtenção de certificado SSL
+server {
+    listen 80;
+    listen [::]:80;
+    server_name $APP_DOMAIN www.$APP_DOMAIN;
     
-    # Substituir domínio
-    sed -i "s/seudominio\.com\.br/$APP_DOMAIN/g" $NGINX_CONFIG
-    sed -i "s/seu-email@dominio\.com\.br/$ADMIN_EMAIL/g" $NGINX_CONFIG
+    # Certbot ACME challenge
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+        allow all;
+    }
     
-    log_success "Configuração do Nginx criada!"
-else
-    log_error "Template nginx-sentinelweb.conf não encontrado!"
-    exit 1
-fi
+    # Temporariamente permite acesso HTTP
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host \$host;
+        proxy_set_header X-Real-IP \$remote_addr;
+        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto \$scheme;
+    }
+}
+EOF
+
+log_success "Configuração HTTP temporária criada!"
 
 # Habilitar site
 if [ -L "$NGINX_ENABLED" ]; then
@@ -651,13 +664,12 @@ fi
 log_info "Testando configuração do Nginx..."
 if nginx -t; then
     log_success "Configuração do Nginx válida!"
+    systemctl reload nginx
+    log_success "Nginx rodando em modo HTTP temporário"
 else
     log_error "Erro na configuração do Nginx!"
     exit 1
 fi
-
-# Não reiniciar ainda (vamos obter SSL primeiro)
-log_info "Nginx será reiniciado após obter certificado SSL..."
 
 ################################################################################
 # PASSO 14: OBTER CERTIFICADO SSL
@@ -669,15 +681,15 @@ log_step 14 $TOTAL_STEPS "Obtendo Certificado SSL (Let's Encrypt)"
 mkdir -p /var/www/certbot
 chown -R www-data:www-data /var/www/certbot
 
-# Parar Nginx temporariamente
-systemctl stop nginx
-
 log_info "Obtendo certificado SSL para $APP_DOMAIN..."
 log_warning "Certifique-se de que o domínio aponta para este servidor!"
 
+SSL_OBTAINED=false
+
 if confirm "Deseja obter o certificado SSL agora?"; then
     if certbot certonly \
-        --standalone \
+        --webroot \
+        -w /var/www/certbot \
         --non-interactive \
         --agree-tos \
         --email "$ADMIN_EMAIL" \
@@ -685,6 +697,7 @@ if confirm "Deseja obter o certificado SSL agora?"; then
         -d "www.$APP_DOMAIN"; then
         
         log_success "Certificado SSL obtido com sucesso!"
+        SSL_OBTAINED=true
         
         # Configurar renovação automática
         log_info "Configurando renovação automática..."
@@ -695,15 +708,51 @@ if confirm "Deseja obter o certificado SSL agora?"; then
         log_error "Falha ao obter certificado SSL!"
         log_warning "Você pode tentar manualmente depois com:"
         log_warning "  certbot certonly --webroot -w /var/www/certbot -d $APP_DOMAIN -d www.$APP_DOMAIN"
+        SSL_OBTAINED=false
     fi
 else
     log_warning "Certificado SSL NÃO obtido."
     log_info "Execute manualmente: certbot certonly --webroot -w /var/www/certbot -d $APP_DOMAIN"
+    SSL_OBTAINED=false
 fi
 
-# Iniciar Nginx
-systemctl start nginx
-systemctl reload nginx
+################################################################################
+# PASSO 14.5: CONFIGURAR NGINX COM SSL (SE OBTIDO)
+################################################################################
+
+if [ "$SSL_OBTAINED" = true ]; then
+    log_info "Configurando Nginx com SSL/HTTPS..."
+    
+    # Verificar se o template existe
+    if [ -f "$INSTALL_DIR/nginx-sentinelweb.conf" ]; then
+        # Copiar configuração completa com SSL
+        cp $INSTALL_DIR/nginx-sentinelweb.conf $NGINX_CONFIG
+        
+        # Substituir domínio
+        sed -i "s/seudominio\.com\.br/$APP_DOMAIN/g" $NGINX_CONFIG
+        sed -i "s/seu-email@dominio\.com\.br/$ADMIN_EMAIL/g" $NGINX_CONFIG
+        
+        # Testar configuração
+        log_info "Testando configuração HTTPS do Nginx..."
+        if nginx -t; then
+            systemctl reload nginx
+            log_success "Nginx configurado com SSL/HTTPS!"
+            log_success "Acesse: https://$APP_DOMAIN"
+        else
+            log_error "Erro na configuração HTTPS do Nginx!"
+            log_warning "Mantendo configuração HTTP temporária"
+        fi
+    else
+        log_warning "Template nginx-sentinelweb.conf não encontrado!"
+        log_warning "Mantendo configuração HTTP temporária"
+    fi
+else
+    log_warning "Nginx permanecerá em modo HTTP até que o SSL seja obtido"
+    log_info "Após obter SSL, reconfigure com:"
+    log_info "  cp $INSTALL_DIR/nginx-sentinelweb.conf $NGINX_CONFIG"
+    log_info "  sed -i 's/seudominio\.com\.br/$APP_DOMAIN/g' $NGINX_CONFIG"
+    log_info "  nginx -t && systemctl reload nginx"
+fi
 
 ################################################################################
 # PASSO 15: CONSTRUIR IMAGENS DOCKER
